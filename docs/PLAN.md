@@ -37,7 +37,7 @@ Phase 2 (1 agent, serial)        T5  Wire-up + integration + QA
 ## Status
 
 - [x] **T0** scaffold and contract (2026-10-30)
-- [ ] T1 · [ ] T2 · [ ] T3 · [ ] T4
+- [x] T1 · [x] T2 · [x] T3 · [x] T4 (2026-10-31)
 - [ ] T5
 
 ## Environment notes (read before building)
