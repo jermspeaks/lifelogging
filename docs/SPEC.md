@@ -31,9 +31,9 @@ next widget (e.g. Today Calendar, Journal) a matter of adding a module, not rest
 | Layer | Choice | Why |
 |---|---|---|
 | Desktop shell | **Tauri v2** | Rust backend + web UI, tiny binaries. The "Rust desktop app" model. |
-| Backend | Rust (stable, edition 2021) | Owns all data access and business rules. |
+| Backend | Rust (stable, edition 2024) | Owns all data access and business rules. |
 | Database | **SQLite via `rusqlite`** (`bundled` feature) | Single file, zero setup, easy to back up. |
-| Migrations | **`rusqlite_migration`** | Embedded, ordered SQL migrations run on startup. |
+| Migrations | **`rusqlite_migration`** | Embedded, ordered SQL migrations run on startup. (Pins `rusqlite` to 0.40 — bump both together.) |
 | Rust → TS types | **`ts-rs`** | Generate TS types from Rust structs so the IPC contract can't drift. |
 | Frontend | React 19 + Vite + TypeScript | Same stack as my other apps. |
 | Styling/UI | Tailwind CSS v4 + shadcn/ui | Same as blippy/hub. |

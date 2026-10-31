@@ -34,6 +34,44 @@ Phase 2 (1 agent, serial)        T5  Wire-up + integration + QA
 > commands. Then report: what you built, any choices you made where the spec was unclear, any
 > changes needed outside your files, and the verify output.
 
+## Status
+
+- [x] **T0** scaffold and contract (2026-10-30)
+- [ ] T1 · [ ] T2 · [ ] T3 · [ ] T4
+- [ ] T5
+
+## Environment notes (read before building)
+
+- **macOS SDK mismatch on this machine:** Command Line Tools 26.6 ships a default `MacOSX27.0.sdk`
+  that its own linker can't parse (`tapi error: unknown architecture arm64e.x1-macos`). Until
+  CLT/Xcode is updated, prefix Rust and Tauri commands with
+  `SDKROOT=/Library/Developer/CommandLineTools/SDKs/MacOSX26.5.sdk`.
+  This is deliberately **not** committed to repo config.
+- Run `cargo` from **inside `src-tauri/`**. `src-tauri/.cargo/config.toml` sets `TS_RS_EXPORT_DIR`,
+  and Cargo only reads it from the working directory. Running with `--manifest-path` from the repo
+  root silently writes bindings to a stray `src-tauri/bindings/`. `npm run bindings` handles this.
+
+## What T0 established (conventions for T1–T5)
+
+- **Rust stubs:** the bodies in `db/mod.rs`, `habits/repo.rs`, and `habits/logic.rs` are
+  `unimplemented!()`. Keep the signatures as they are. If one must change, say so in your summary.
+  `#![allow(dead_code)]` lines marked `TODO(T5)` are removed during wire-up.
+- **Commands** in `habits/commands.rs` already have their final signatures and take `State<'_, Db>`
+  (`db::Db(Mutex<Connection>)`). They return a "not implemented yet" `Validation` error until T5.
+- **Types:** Rust structs → `npm run bindings` → `src/lib/bindings/*.ts` (generated, committed).
+  Import them through `src/lib/types.ts`. `i64` fields are annotated `#[ts(type = "number")]`.
+  Dates (`NaiveDate`) serialize as `"YYYY-MM-DD"`.
+- **`HabitPatch.description`:** `""` clears the description. Omitting the field leaves it unchanged.
+- **Frontend data layer:** `src/lib/api.ts` (the `Api` interface plus the Tauri implementation),
+  `src/lib/mock-api.ts` (in-memory, seeded with three habits and two weeks of history), and
+  `src/lib/queries.ts` (query hooks `useHabits` and `useTodayHabits`, plus one mutation hook per
+  command). Show errors with `errorMessage(e)`.
+- **Dates:** `src/lib/date.ts` provides `useToday()`, `todayLocal()`, `addDays()`, `toISODate()`,
+  and `fromISODate()`.
+- **UI:** shadcn/ui (new-york, `radix-ui`) components are in `src/components/ui/`. Icons come from
+  `lucide-react`. Dark mode follows the OS through `prefers-color-scheme`; there is no `.dark`
+  class. The routes use a hash router (`createHashRouter`) from `react-router` v8.
+
 ---
 
 ## T0: Scaffold and freeze the contract (serial, blocking)
@@ -84,7 +122,7 @@ defined. Command bodies are stubbed.
 
 **Verify:** `npm run typecheck && npm run lint && npm test`, `cargo build` and `cargo clippy` in
 `src-tauri/`, `npm run tauri dev` opens a window showing the shell, and
-`VITE_MOCK_API=1 npm run dev` works in a browser.
+`npm run dev:mock` works in a browser.
 
 ---
 
@@ -166,15 +204,15 @@ an empty string.
   "Weekdays" presets. Client-side validation matches SPEC §6. Backend `Validation` messages are
   shown inline.
 - Collapsed archived section with unarchive and delete-permanently (AlertDialog confirm).
-- `colors.ts` maps `HabitColor` to Tailwind classes. **T4 imports this, so ship it first.** The
-  palette is fixed by the `HabitColor` enum from T0.
+- `colors.ts` (`HABIT_COLORS`, `habitColorClasses`) already exists from T0. T3 may extend it,
+  but must not rename its exports, because T4 imports them.
 - Toasts (sonner) for mutation errors.
 
 **Tests:** `WeekdayPicker` mask ↔ toggles round-trip (presets set 127 and 31); the form blocks an
 empty name; the delete confirm calls `deleteHabit` only after confirmation.
 
 **Verify:** `npm run typecheck && npm run lint && npm test`, then click through every flow with
-`VITE_MOCK_API=1 npm run dev`.
+`npm run dev:mock`.
 
 ---
 
@@ -191,19 +229,18 @@ empty name; the delete confirm calls `deleteHabit` only after confirmation.
   Today renders a responsive grid of widgets. For now it has only `HabitChecklist`.
 - Header with the formatted date and the "n of m done" summary (counts only habits scheduled today).
 - `HabitChecklist`: habits scheduled today first, then a collapsed "Not scheduled today" group.
-  Optimistic toggle through a TanStack `onMutate` cache update that rolls back on error and shows a
-  toast. Shows the streak badge and the 7-day `WeekStrip` (each dot gets a title tooltip with its
+  Toggle with `useSetHabitCheck()` from `src/lib/queries.ts`. T0 already implemented the optimistic
+  update, rollback, and error toast there. Shows the streak badge and the 7-day `WeekStrip` (each dot gets a title tooltip with its
   date and status).
 - Empty state that links to `/habits`.
 - Uses `useToday()` so the date rolls over when the window regains focus.
-- If T3's `colors.ts` hasn't landed yet, import it anyway. The T0 stub path exists, so fill in the
-  local usage and rebase.
+- Colors come from `src/widgets/habits/colors.ts` (already in place from T0).
 
 **Tests:** `WeekStrip` renders 7 dots with the right status classes; the summary counts only
 scheduled habits; a toggle calls `setHabitCheck` with the `today` from `useToday`.
 
 **Verify:** `npm run typecheck && npm run lint && npm test`, then a manual run with
-`VITE_MOCK_API=1 npm run dev`.
+`npm run dev:mock`.
 
 ---
 

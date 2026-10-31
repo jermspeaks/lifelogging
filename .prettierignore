@@ -1,0 +1,6 @@
+dist
+src-tauri/target
+src-tauri/gen
+src/lib/bindings
+*.md
+src-tauri
