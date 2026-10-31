@@ -1,7 +1,12 @@
 # Lifelogging
 
-A local-first desktop daily dashboard (Tauri v2 + Rust + SQLite + React). See
-[`docs/SPEC.md`](docs/SPEC.md) and [`docs/PLAN.md`](docs/PLAN.md).
+A local-first desktop daily dashboard (Tauri v2 + Rust + SQLite + React).
+
+- [`docs/SPEC.md`](docs/SPEC.md): what we're building
+- [`docs/PLAN.md`](docs/PLAN.md): open and upcoming work
+- [`docs/COMPLETED.md`](docs/COMPLETED.md): finished work and the decisions made
+- [`AGENTS.md`](AGENTS.md): conventions, commands, and gotchas for coding agents (also loaded by
+  `CLAUDE.md`)
 
 ## Develop
 
@@ -12,7 +17,7 @@ npm run dev:mock      # UI only, in a browser, against an in-memory mock backend
 ```
 
 > On this Mac, Rust builds currently need
-> `SDKROOT=/Library/Developer/CommandLineTools/SDKs/MacOSX26.5.sdk` (see PLAN.md → Environment notes).
+> `SDKROOT=/Library/Developer/CommandLineTools/SDKs/MacOSX26.5.sdk` (see AGENTS.md → Environment).
 
 ## Data
 

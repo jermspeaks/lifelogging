@@ -100,7 +100,7 @@ export function HabitForm({ habit, onDone }: FormProps) {
     const description = values.description.trim();
     const { color, scheduleDays } = values;
     if (habit) {
-      // `""` clears the description (PLAN: HabitPatch.description).
+      // `""` clears the description (see `HabitPatch` in src-tauri/src/habits/model.rs).
       update.mutate(
         { id: habit.id, patch: { name, description, color, scheduleDays } },
         { onSuccess: onDone, onError },
