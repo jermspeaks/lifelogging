@@ -21,13 +21,6 @@ choices you made where the spec was ambiguous.
 
 ## Environment (read before building)
 
-- **macOS SDK workaround (required on this machine for now):** the Command Line Tools linker can't
-  read the default `MacOSX27.0.sdk`. Prefix **every** Rust or Tauri command:
-  ```bash
-  export SDKROOT=/Library/Developer/CommandLineTools/SDKs/MacOSX26.5.sdk
-  ```
-  Don't commit this to repo config. When it's no longer needed, delete this note (see PLAN.md
-  open item 2).
 - **Run `cargo` from inside `src-tauri/`.** `src-tauri/.cargo/config.toml` sets `TS_RS_EXPORT_DIR`,
   and Cargo only reads it from the working directory. If you use `--manifest-path` from the repo
   root, it silently writes bindings to a stray `src-tauri/bindings/`.
@@ -37,7 +30,7 @@ choices you made where the spec was ambiguous.
 
 ```bash
 npm install
-npm run tauri dev                 # desktop app (needs SDKROOT, see above)
+npm run tauri dev                 # desktop app
 npm run dev:mock                  # UI only, in a browser, against src/lib/mock-api.ts
 LIFELOGGING_DB_PATH=/tmp/x.db npm run tauri dev   # use a scratch database
 

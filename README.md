@@ -16,8 +16,6 @@ npm run tauri dev     # desktop app
 npm run dev:mock      # UI only, in a browser, against an in-memory mock backend
 ```
 
-> On this Mac, Rust builds currently need
-> `SDKROOT=/Library/Developer/CommandLineTools/SDKs/MacOSX26.5.sdk` (see AGENTS.md → Environment).
 
 ## Data
 

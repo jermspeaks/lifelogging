@@ -22,6 +22,15 @@ contract-first scaffold task, four parallel agents in git worktrees, and one ser
 Final state: 36 Rust tests and 21 frontend tests pass. Clippy (`-D warnings`), fmt, ESLint,
 Prettier, `tsc`, and the production build are clean.
 
+### Follow-up: manual QA and macOS toolchain (2026-10-31)
+
+**Verified**
+- In the real app, four habits (two daily, one weekday, one weekend-only) appeared correctly. Checking
+  and unchecking worked and persisted across an app restart. Other manual QA flows remain open in
+  `PLAN.md`.
+- `env -u SDKROOT cargo build` succeeded in `src-tauri/`, so the obsolete SDK workaround was removed
+  from `AGENTS.md` and `README.md`.
+
 ---
 
 ### T5: Wire-up, integration, and QA (2026-10-31)

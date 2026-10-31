@@ -8,26 +8,25 @@ are in [`AGENTS.md`](../AGENTS.md). The product spec is [`SPEC.md`](./SPEC.md).
 
 | Milestone | State |
 |---|---|
-| **v0.1: Habits** (shell + habit CRUD + Today checklist) | ✅ Built and committed (T0–T5, 2026-10-31). Manual QA in the real window is still open (below). |
+| **v0.1: Habits** (shell + habit CRUD + Today checklist) | ✅ Built and committed (T0–T5, 2026-10-31). Manual QA is partly complete; remaining checks are below. |
 | v0.2: second dashboard module | Not started. Pick from the [candidates](#next-candidate-tasks). |
 
 ## Open items
 
 ### 1. v0.1 manual QA in the real window (needs a human)
 
-Run `npm run tauri dev` with the `SDKROOT` prefix (see AGENTS.md). Use a scratch database
-(`LIFELOGGING_DB_PATH=/tmp/qa.db`) if you don't want test data in your real one. Each flow is already
-covered by the IPC tests and the mock click-through. What's left is confirming it with a real mouse
-in the real webview.
+Run `npm run tauri dev`. Use a scratch database (`LIFELOGGING_DB_PATH=/tmp/qa.db`) if you don't want
+test data in your real one. Each flow is already covered by the IPC tests and the mock click-through.
+What's left is confirming the remaining flows with a real mouse in the real webview.
 
 - [x] Fresh start shows the empty state. The DB file is created in
       `~/Library/Application Support/com.jermspeaks.lifelogging/`.
 - [x] Today groups habits correctly by schedule.
 - [x] A DB seeded with old checks shows sensible streaks and 7-day strips, and they survive a
       restart.
-- [ ] Create 3 habits (daily, weekdays, weekends only). They appear on Habits and Today in order.
-- [ ] Checking and unchecking updates the summary, streak, and strip instantly, and survives a
-      restart.
+- [x] Create four habits (two daily, one weekdays, one weekends only). They appear correctly on
+      Habits and Today.
+- [x] Checking and unchecking works, and the changes survive an app restart.
 - [ ] Editing name, color, or schedule shows up on Today.
 - [ ] Reorder persists across a restart.
 - [ ] Archive hides a habit from Today. Unarchive restores it with its history intact.
@@ -36,28 +35,29 @@ in the real webview.
 
 If something fails, add a task below with the failing step and fix it before starting v0.2.
 
-### 2. Fix the macOS toolchain (needs a human, outside the repo)
-
-The Command Line Tools 26.6 linker can't read the default `MacOSX27.0.sdk`. Every Rust build needs
-`SDKROOT=…/MacOSX26.5.sdk`, and rust-analyzer in the editor fails its build-script step. Update the
-Command Line Tools (or Xcode). When a plain `cargo build` works in `src-tauri/`, remove the
-workaround notes from AGENTS.md and README.md.
-
 ## Next: candidate tasks
 
 These aren't specced yet. Before splitting one into agent tasks, add a section for it to `SPEC.md`
-covering its data model, rules, IPC contract, and UI. Then plan it here with the same phases as
-v0.1: a contract-first scaffold task, parallel tasks with explicit file ownership, then wire-up. See
-"Running a plan with parallel agents" below.
+covering its data model, rules, IPC contract, and UI. Then plan it here with the same phases as v0.1:
+a contract-first scaffold task, parallel tasks with explicit file ownership, then wire-up. See
+"Running a plan with parallel agents" below. Habit tracking from `ideas.md` is delivered in v0.1.
 
-- **T6: Today Calendar widget.** Import `.ics` files into an `events` table, and show today's events
-  plus a 3-day lookahead (`ideas.md` → Daily View). This is the first test of the "new module = new
-  folder + widget" pattern (SPEC §4).
-- **T7: Journal widget.** One entry per local date, keyed by `date` like `habit_checks`.
-- **T8: Data export and backup.** A command that copies the SQLite file, or exports JSON, to a
-  location the user chooses.
+- **T6: Today Calendar and event lookahead.** Import `.ics` calendars (including birthdays and other
+  events) into an `events` table; show today's events and the next three days on the dashboard.
+- **T7: Journal widget.** Create and edit one journal entry per local date, keyed by `date` like
+  `habit_checks`.
+- **T8: Recap of Yesterday.** Summarize the prior local day's activity across available modules.
+- **T9: Annual theme.** Set and display a yearly theme, such as a year of practice.
+- **T10: Quote widget.** Define how quotes are selected and whether they come from a local collection
+  or an external source.
+- **T11: Notes review.** Save items for later and surface them for review on the dashboard.
+- **T12: Today's reminders.** Define reminder creation, date/time behavior, and presentation.
+- **T13: Puzzle widget.** Define the puzzle experience and its content source.
+- **T14: Goals.** Define goal tracking and how goals appear in the daily dashboard.
+- **T15: Data export and backup.** Provide a user-selected SQLite backup or JSON export.
 
-Further ideas are in [`ideas.md`](../ideas.md) and SPEC §10.
+These candidates cover the remaining ideas in [`ideas.md`](../ideas.md); implementation still requires
+specifying each feature in `SPEC.md` first.
 
 ---
 
