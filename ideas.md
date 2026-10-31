@@ -30,6 +30,9 @@ Odd note: foresight? (a look forward?)
 ## Infra
 
 - Agent layer (e.g. A2A, MCP, etc.)
+- Helping agents (with different roles)
+- What they are doing,
+- Assigning work
 
 ## Interests
 
@@ -57,3 +60,31 @@ Some of the new interests include: chinese language learning (read, write, speak
 - Planning ahead
 - What is coming ahead
 - Open Loops - or get back to
+
+## Gallery
+To View these in Pinterest or IG format
+Hell, even TikTok
+
+## Review
+The things from before, resurfaced
+Active Recall
+
+## Relationships
+- Of birthdays, people
+- Next social events
+- Friend radar
+- Friend Feed
+
+## Spend/Finance
+- YNAB assign dollars to amounts iin the future
+
+The work dashboard is yet another tool for me to review later
+
+## Health stuff
+- workouts
+- physical health
+- mental health
+- check-ins
+- indicators (weight, etc?)
+
+## Spiritual + Community (not sure yet)
