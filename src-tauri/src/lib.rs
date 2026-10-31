@@ -1,3 +1,4 @@
+mod calendar;
 mod db;
 mod error;
 mod habits;
@@ -7,6 +8,7 @@ use std::sync::Mutex;
 
 use tauri::{Builder, Manager, Runtime};
 
+use calendar::commands as calendar_commands;
 use habits::commands;
 
 /// Overrides the database location (dev/testing). Default: `<app_data_dir>/lifelogging.db`.
@@ -37,6 +39,10 @@ fn with_commands<R: Runtime>(builder: Builder<R>) -> Builder<R> {
         commands::reorder_habits,
         commands::set_habit_check,
         commands::get_today,
+        calendar_commands::list_calendars,
+        calendar_commands::import_calendar,
+        calendar_commands::delete_calendar,
+        calendar_commands::get_upcoming_events,
     ])
 }
 
@@ -173,6 +179,33 @@ mod ipc_tests {
         invoke(&w, "delete_habit", json!({ "id": walk_id })).unwrap();
         let err = invoke(&w, "get_habit", json!({ "id": walk_id })).unwrap_err();
         assert_eq!(err["kind"], "NotFound");
+
+        let ics = format!(
+            "BEGIN:VCALENDAR\r\nBEGIN:VEVENT\r\nUID:today-event\r\nDTSTART;VALUE=DATE:{}\r\nSUMMARY:Today event\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
+            today.replace('-', "")
+        );
+        let imported = invoke(
+            &w,
+            "import_calendar",
+            json!({ "name": "Personal", "content": ics }),
+        )
+        .unwrap();
+        let calendar_id = imported["calendar"]["id"].clone();
+        assert_eq!(imported["importedEventCount"], 1);
+        assert_eq!(
+            invoke(&w, "list_calendars", json!({})).unwrap()[0]["name"],
+            "Personal"
+        );
+        let events = invoke(&w, "get_upcoming_events", json!({ "today": today })).unwrap();
+        assert_eq!(events[0]["summary"], "Today event");
+        invoke(&w, "delete_calendar", json!({ "id": calendar_id })).unwrap();
+        assert!(
+            invoke(&w, "list_calendars", json!({}))
+                .unwrap()
+                .as_array()
+                .unwrap()
+                .is_empty()
+        );
     }
 
     #[test]

@@ -1,4 +1,4 @@
-import { CalendarCheck, ListChecks, type LucideIcon } from "lucide-react";
+import { CalendarCheck, CalendarDays, ListChecks, type LucideIcon } from "lucide-react";
 import { NavLink, Outlet } from "react-router";
 
 import { cn } from "@/lib/utils";
@@ -9,6 +9,7 @@ type NavItem = { to: string; label: string; icon: LucideIcon };
 const NAV: NavItem[] = [
   { to: "/", label: "Today", icon: CalendarCheck },
   { to: "/habits", label: "Habits", icon: ListChecks },
+  { to: "/calendar", label: "Calendar", icon: CalendarDays },
 ];
 
 export function AppLayout() {

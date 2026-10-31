@@ -9,7 +9,7 @@ are in [`AGENTS.md`](../AGENTS.md). The product spec is [`SPEC.md`](./SPEC.md).
 | Milestone | State |
 |---|---|
 | **v0.1: Habits** (shell + habit CRUD + Today checklist) | ✅ Built and committed (T0–T5, 2026-10-31). Manual QA is partly complete; remaining checks are below. |
-| v0.2: second dashboard module | Not started. Pick from the [candidates](#next-candidate-tasks). |
+| v0.2: Calendar and event lookahead | ✅ Implemented; real-window mouse QA remains open below. |
 
 ## Open items
 
@@ -33,7 +33,20 @@ What's left is confirming the remaining flows with a real mouse in the real webv
 - [ ] Permanent delete asks for confirmation and removes the habit and its history.
 - [ ] Invalid input (an empty name) shows an inline error, and the app doesn't crash.
 
-If something fails, add a task below with the failing step and fix it before starting v0.2.
+If something fails, add a task below with the failing step and fix it before starting the next module.
+
+### 2. T6 real-window calendar QA (needs a human)
+
+Run `npm run tauri dev` and use the real file chooser and mouse interactions. Test with a scratch DB if desired.
+
+- [ ] Import a `.ics` file with an all-day event, a timed event, and a yearly birthday.
+- [ ] Confirm the events appear under the correct local dates in Today, including the next three days.
+- [ ] Re-import the same calendar name with changed content; confirm it replaces, rather than duplicates, events.
+- [ ] Try a malformed or unsupported recurrence file; confirm the error is visible and the previous import remains intact.
+- [ ] Delete a calendar after confirmation; confirm its events disappear from Today.
+- [ ] Restart the app and confirm imported calendars and events persist.
+
+The backend IPC and mock UI flows are automated; this checklist specifically covers the real macOS webview and file chooser.
 
 ## Next: candidate tasks
 
@@ -42,8 +55,6 @@ covering its data model, rules, IPC contract, and UI. Then plan it here with the
 a contract-first scaffold task, parallel tasks with explicit file ownership, then wire-up. See
 "Running a plan with parallel agents" below. Habit tracking from `ideas.md` is delivered in v0.1.
 
-- **T6: Today Calendar and event lookahead.** Import `.ics` calendars (including birthdays and other
-  events) into an `events` table; show today's events and the next three days on the dashboard.
 - **T7: Journal widget.** Create and edit one journal entry per local date, keyed by `date` like
   `habit_checks`.
 - **T8: Recap of Yesterday.** Summarize the prior local day's activity across available modules.

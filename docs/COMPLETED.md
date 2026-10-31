@@ -4,6 +4,31 @@ Finished tasks from [`PLAN.md`](./PLAN.md), newest first. Each entry records wha
 decisions made where [`SPEC.md`](./SPEC.md) was ambiguous, and how the work was verified. Open work
 stays in `PLAN.md`. Ongoing conventions live in [`AGENTS.md`](../AGENTS.md).
 
+## T6: Calendar and event lookahead (2026-10-31)
+
+**Built**
+- Added SQLite migration 002 for calendars and imported event records, with a case-insensitive unique calendar name and cascading deletion.
+- Added the typed `list_calendars`, `import_calendar`, `delete_calendar`, and `get_upcoming_events` commands, generated TypeScript bindings, React Query hooks, and mock API parity.
+- Added `/calendar` for local `.ics` selection, source naming, import feedback, calendar inventory, and confirmed deletion.
+- Added the Today Events widget with local-date groups for today and the next three days, all-day/timed presentation, and loading/error/empty states.
+
+**Decisions**
+- A calendar's trimmed source name (case-insensitive) is its identity. Re-importing that name atomically replaces its events; distinct names remain independent even when UIDs match. Failed validation does not change the existing import.
+- Imported events are read-only; edits happen in the source calendar followed by re-import. The original file contents are not retained.
+- Supported event values are date-only, floating local time, UTC, and IANA `TZID`; UTC and IANA times are converted to the machine's local zone. Ambiguous times choose the earlier instant; nonexistent source times are rejected.
+- Supports one-time events and simple `RRULE:FREQ=YEARLY` recurrence for birthdays. Other recurrence rules, `RDATE`, `EXDATE`, overrides, `DURATION`, custom time zones, and unsupported constructs fail rather than being guessed. February 29 yearly events do not get a synthetic non-leap-year occurrence.
+- The lookahead includes the local `today` and following three dates. Multi-day events appear only on their start date; all-day `DTEND` is treated as exclusive. Imports are bounded to 10 MiB and 10,000 events.
+- No dialog plugin was added; the browser file input reads the chosen file and sends UTF-8 content through typed IPC.
+
+**Verified**
+- `cargo test`: 49 passed, including calendar migration/repository/parser and IPC coverage.
+- `cargo clippy --all-targets -- -D warnings` and `cargo fmt --check` passed.
+- `npm run typecheck`, `npm run lint`, `npm test` (25 passed), `npx prettier --check .`, and `npm run build` passed. Vite reports a bundle-size advisory (>500 kB minified output); the build succeeds.
+- Generated bindings were produced by `npm run bindings`.
+- **Not verified in the real window:** file chooser/mouse QA, persistence across an actual restart, replacement UX, and delete flow. Checklist remains open in `PLAN.md` and requires human confirmation.
+
+---
+
 ## v0.1: Habits (2026-10-30 → 2026-10-31)
 
 v0.1 delivered the dashboard shell and the first widget: full CRUD for habits, a Today checklist
