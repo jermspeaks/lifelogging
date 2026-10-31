@@ -17,7 +17,6 @@ pub enum HabitColor {
     Pink,
 }
 
-#[allow(dead_code)] // TODO(T5): used by repo once wired up.
 impl HabitColor {
     pub fn as_str(self) -> &'static str {
         match self {
@@ -46,7 +45,6 @@ impl HabitColor {
 }
 
 /// Weekday mask: bit 0 = Monday … bit 6 = Sunday.
-#[allow(dead_code)] // TODO(T5): used by repo once wired up.
 pub const EVERY_DAY: u8 = 0b111_1111;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS)]

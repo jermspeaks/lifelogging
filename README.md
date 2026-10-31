@@ -14,6 +14,20 @@ npm run dev:mock      # UI only, in a browser, against an in-memory mock backend
 > On this Mac, Rust builds currently need
 > `SDKROOT=/Library/Developer/CommandLineTools/SDKs/MacOSX26.5.sdk` (see PLAN.md → Environment notes).
 
+## Data
+
+Habits live in a single SQLite file:
+
+```
+~/Library/Application Support/com.jermspeaks.lifelogging/lifelogging.db
+```
+
+- **Use a different database:** `LIFELOGGING_DB_PATH=/tmp/scratch.db npm run tauri dev`. Handy for
+  testing with seeded data.
+- **Back up:** quit the app, then copy `lifelogging.db`.
+- **Reset:** quit the app, then delete `lifelogging.db` and its `-wal` and `-shm` siblings. Migrations
+  recreate the schema on the next launch.
+
 ## Checks
 
 ```bash

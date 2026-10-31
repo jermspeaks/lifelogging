@@ -1,5 +1,4 @@
 //! SQL for habits and checks (SPEC §5, §6).
-#![allow(dead_code)] // TODO(T5): remove once commands call into the repo.
 
 use std::collections::{HashMap, HashSet};
 

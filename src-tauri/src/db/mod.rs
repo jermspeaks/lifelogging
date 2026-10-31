@@ -1,5 +1,4 @@
 //! SQLite connection setup and migrations (SPEC §5).
-#![allow(dead_code)] // TODO(T5): remove once setup in lib.rs opens the database.
 
 use std::path::Path;
 use std::sync::Mutex;
@@ -57,6 +56,7 @@ pub fn open(path: &Path) -> AppResult<Connection> {
 }
 
 /// In-memory database with migrations applied, for tests.
+#[cfg(test)]
 pub fn open_in_memory() -> AppResult<Connection> {
     init(Connection::open_in_memory()?)
 }

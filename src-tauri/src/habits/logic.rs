@@ -1,5 +1,4 @@
 //! Pure domain rules: schedules, streaks, 7-day strip (SPEC §6 rules 1, 4, 5).
-#![allow(dead_code)] // TODO(T5): remove once commands call into logic.
 
 use std::collections::HashSet;
 

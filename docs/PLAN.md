@@ -38,7 +38,7 @@ Phase 2 (1 agent, serial)        T5  Wire-up + integration + QA
 
 - [x] **T0** scaffold and contract (2026-10-30)
 - [x] T1 · [x] T2 · [x] T3 · [x] T4 (2026-10-31)
-- [ ] T5
+- [x] T5 (2026-10-31). The real-app checks below that need mouse clicks are still open.
 
 ## Environment notes (read before building)
 
@@ -263,10 +263,10 @@ integration fixes (each one listed in the summary).
 - README: how to run, where the DB lives, and how to reset it.
 
 **Manual QA checklist (macOS, `npm run tauri dev`)**
-- [ ] Fresh start shows the empty state. The DB file is created in
+- [x] Fresh start shows the empty state. The DB file is created in
       `~/Library/Application Support/com.jermspeaks.lifelogging/`.
 - [ ] Create 3 habits (daily, weekdays, weekends only). They appear on Habits and Today in order.
-- [ ] Today groups the habits correctly by schedule.
+- [x] Today groups the habits correctly by schedule.
 - [ ] Checking and unchecking updates the summary, streak, and strip instantly, and the changes
       survive a restart.
 - [ ] Editing name, color, or schedule shows up on Today.
@@ -278,6 +278,21 @@ integration fixes (each one listed in the summary).
       sensible streaks.
 
 **Verify:** the full Definition of Done in SPEC §9.
+
+**T5 notes**
+- `commands.rs` builds each `TodayHabit` with one `checks_between` query. The query starts at the
+  earlier of the strip start and the oldest creation date.
+- **Creation date:** each habit's creation day is its `created_at` converted to the **local** time
+  zone. Using the UTC date would mark an evening-created habit's first day as "before creation".
+- **IPC tests:** `lib.rs` → `ipc_tests` drives every command through Tauri's mock runtime
+  (`tauri` dev-dependency with the `test` feature), using the same camelCase arguments `api.ts` sends.
+  - The request origin must be `tauri://localhost`. Any other origin is treated as remote and denied.
+  - `generate_context!` can only expand once per crate, so the app and the tests share `context()`.
+- **Manual QA:** the boxes above were checked in the real app against a seeded
+  `LIFELOGGING_DB_PATH` database: streaks, the 7-day strip, schedule grouping, persistence after a
+  restart, and the empty state at the default path. Every mutation is covered by the IPC tests, plus
+  T3's click-through against the mock. Clicking through mutations in the real window still needs a
+  human, because this machine has no UI automation.
 
 ---
 

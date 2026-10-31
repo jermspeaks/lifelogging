@@ -3,7 +3,6 @@ use ts_rs::TS;
 
 /// Every command returns `Result<T, AppError>`. Serialized to the webview as `ErrorPayload`.
 #[derive(Debug, thiserror::Error)]
-#[allow(dead_code)] // TODO(T5): NotFound is produced by repo once wired up.
 pub enum AppError {
     #[error("{0}")]
     NotFound(String),
