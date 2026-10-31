@@ -4,3 +4,4 @@ src-tauri/gen
 src/lib/bindings
 *.md
 src-tauri
+.claude
