@@ -10,6 +10,9 @@ are in [`AGENTS.md`](../AGENTS.md). The product spec is [`SPEC.md`](./SPEC.md).
 |---|---|
 | **v0.1: Habits** (shell + habit CRUD + Today checklist) | ✅ Built and committed (T0–T5, 2026-10-31). Manual QA is partly complete; remaining checks are below. |
 | v0.2: Calendar and event lookahead | ✅ Implemented; real-window mouse QA remains open below. |
+| v0.3: Reflect (Journal, Annual theme, Quotes, Export) | 📝 Specced (SPEC §12–§16); not started. |
+| v0.4: Plan (Reminders, Notes review, Goals) | 📝 Specced (SPEC §17–§19); not started. |
+| v0.5: Look back (Recap, Puzzle) | 📝 Specced (SPEC §20–§21); not started. |
 
 ## Open items
 
@@ -48,27 +51,320 @@ Run `npm run tauri dev` and use the real file chooser and mouse interactions. Te
 
 The backend IPC and mock UI flows are automated; this checklist specifically covers the real macOS webview and file chooser.
 
-## Next: candidate tasks
+## Roadmap: v0.3–v0.5
 
-These aren't specced yet. Before splitting one into agent tasks, add a section for it to `SPEC.md`
-covering its data model, rules, IPC contract, and UI. Then plan it here with the same phases as v0.1:
-a contract-first scaffold task, parallel tasks with explicit file ownership, then wire-up. See
-"Running a plan with parallel agents" below. Habit tracking from `ideas.md` is delivered in v0.1.
+The remaining Daily View ideas in [`ideas.md`](../ideas.md) (T7–T15) are specified in `SPEC.md`
+§12–§21. **Read §12 "Product decisions to confirm" before starting a milestone.** Once a milestone's
+scaffold is committed, its contract is frozen.
 
-- **T7: Journal widget.** Create and edit one journal entry per local date, keyed by `date` like
-  `habit_checks`.
-- **T8: Recap of Yesterday.** Summarize the prior local day's activity across available modules.
-- **T9: Annual theme.** Set and display a yearly theme, such as a year of practice.
-- **T10: Quote widget.** Define how quotes are selected and whether they come from a local collection
-  or an external source.
-- **T11: Notes review.** Save items for later and surface them for review on the dashboard.
-- **T12: Today's reminders.** Define reminder creation, date/time behavior, and presentation.
-- **T13: Puzzle widget.** Define the puzzle experience and its content source.
-- **T14: Goals.** Define goal tracking and how goals appear in the daily dashboard.
-- **T15: Data export and backup.** Provide a user-selected SQLite backup or JSON export.
+| Milestone | Scaffold (serial) | Parallel tasks | Wire-up (serial) | Migrations |
+|---|---|---|---|---|
+| **v0.3: Reflect** | S3 | T7 Journal · T9 Annual theme · T10 Quotes · T15 Export and backup | W3 | 003 journal, 004 annual_themes, 005 quotes |
+| **v0.4: Plan** | S4 | T12 Reminders · T11 Notes review · T14 Goals | W4 | 006 reminders, 007 notes, 008 goals |
+| **v0.5: Look back** | S5 | T8 Recap · T13 Puzzle | W5 | 009 puzzles |
 
-These candidates cover the remaining ideas in [`ideas.md`](../ideas.md); implementation still requires
-specifying each feature in `SPEC.md` first.
+Run the milestones in order. Recap (T8) reads data from the v0.3 and v0.4 modules, so it comes last.
+Within a milestone, the parallel tasks own disjoint files and can run at the same time.
+
+### How the shared files are split
+
+The files that every module touches (`db/mod.rs`, `lib.rs`, `api.ts`, `queries.ts`, `types.ts`,
+`App.tsx`, `AppLayout.tsx`, `Today.tsx`, `Cargo.toml`, `package.json`, `capabilities/`) are owned
+**only** by the scaffold and wire-up tasks. The scaffold freezes everything a parallel agent needs:
+
+- the migrations, in their final SQL from the spec;
+- each module's `model.rs`, with the final types and the bindings generated and committed;
+- each module's `commands.rs` with final signatures, registered in `with_commands()`, and with
+  stubbed bodies that return `Err(AppError::Validation("not implemented".into()))`;
+- stub `repo.rs` and `logic.rs` files containing signatures with `unimplemented!()` bodies, marked
+  `#[allow(dead_code)] // TODO(<task>)`;
+- `api.ts` entries, `types.ts` re-exports, and the `queries.ts` hooks with their final keys and
+  invalidation;
+- `src/lib/mock/<module>.ts` stubs that are spread into `createMockApi()`, and that return empty
+  data or throw `Validation: not implemented`;
+- routes, nav entries, and Today grid slots that render placeholder components from files the
+  parallel tasks own.
+
+Parallel tasks then fill in the module's `repo.rs`, `logic.rs`, `commands.rs`, mock file, widgets,
+and route, with tests. The wire-up task adds an IPC test per command, runs the real app against a
+seeded database, writes the human QA checklist, and closes the milestone in `COMPLETED.md`.
+
+---
+
+### S3: v0.3 scaffold (serial, blocking)
+
+**Goal:** freeze the contracts for SPEC §12–§16 so T7, T9, T10, and T15 can run in parallel.
+
+**Owns:** everything (it's the only agent running).
+
+**Implement**
+- `src-tauri/src/dates.rs` as described in SPEC §12, with tests: `parse_date`, `parse_time`, and
+  `now_rfc3339`.
+- Migrations 003 `journal_entries`, 004 `annual_themes`, and 005 `quotes`, exactly as in the spec.
+  Extend the `db` tests to assert that the new tables exist.
+- Modules `journal`, `themes`, `quotes`, and `data` (export). Each gets `mod.rs`, a final
+  `model.rs`, and stubs for `repo.rs`, `logic.rs`, and `commands.rs`. `data` needs no `logic.rs`
+  unless it's useful. Register all 17 commands.
+- `db::DbPath(PathBuf)`, managed in `setup` (SPEC §16 rule 1).
+- Add `tauri-plugin-dialog` (Rust crate and `@tauri-apps/plugin-dialog`), initialize it in
+  `run()`, and grant `dialog:allow-save` in `capabilities/default.json`. Add a stub
+  `src/lib/dialog.ts` with the final `chooseSavePath` signature, already working in both Tauri and
+  mock mode.
+- `npm run bindings`, `types.ts`, `api.ts`, and `queries.ts`. Query keys: `["journal", …]`,
+  `["themes", …]`, `["quotes", …]`, and `["data-info"]`.
+- Create `src/lib/mock/` with `journal.ts`, `themes.ts`, `quotes.ts`, and `data.ts` stubs, and
+  spread them into `createMockApi()`.
+- Routes `/journal`, `/themes`, `/quotes`, and `/settings`, rendered from stub components in
+  `src/routes/{Journal,Themes,Quotes,Settings}.tsx`. Nav entries follow SPEC §12, with Settings
+  pinned to the bottom of the sidebar.
+- `Today.tsx`: put the `ThemeBanner` slot above the grid. Add `JournalWidget` (with
+  `lg:col-span-2`) and `QuoteWidget` to the grid in the order from SPEC §12. Each comes from a stub
+  component in the owned widget folders.
+
+**Verify:** the full Definition of Done in `AGENTS.md`. `npm run dev:mock` shows the new nav
+entries and placeholder pages, and `npm run tauri dev` starts with migrations 003–005 applied.
+
+---
+
+### T7: Journal (parallel, after S3)
+
+**Spec:** SPEC §13.
+
+**Owns:** `src-tauri/src/journal/{repo,logic,commands}.rs`, `src/lib/mock/journal.ts`,
+`src/widgets/journal/**`, `src/routes/Journal.tsx`, and tests next to them.
+
+**Implement:** the repo and rules 1–5, the command bodies (with command-level tests against
+`&Connection` helpers), the mock with 3 seeded past entries, the Today widget with debounced
+autosave and the rollover flush, and the `/journal` page with search, paging, a date jump, delete,
+and the `?date=` parameter.
+
+**Tests:** the list in SPEC §13 "Verification".
+
+**Verify:** `cd src-tauri && cargo test && cargo clippy --all-targets -- -D warnings && cargo fmt --check`,
+then `npm run typecheck && npm run lint && npm test && npx prettier --check .`, then click through
+with `npm run dev:mock`.
+
+---
+
+### T9: Annual theme (parallel, after S3)
+
+**Spec:** SPEC §14.
+
+**Owns:** `src-tauri/src/themes/{repo,logic,commands}.rs`, `src/lib/mock/themes.ts`,
+`src/widgets/themes/**` (`ThemeBanner`, `ThemeDialog`), `src/routes/Themes.tsx`, and tests.
+
+**Implement:** the upsert, validation, list, and delete. The banner shows the day-of-year progress,
+computed in a small pure helper in `src/widgets/themes/` (not in `date.ts`, which isn't owned). Add
+the dialog and the `/themes` page. Seed the mock with the current year's theme.
+
+**Tests and verify:** as in SPEC §14, plus the same Verify commands as T7.
+
+---
+
+### T10: Quotes (parallel, after S3)
+
+**Spec:** SPEC §15.
+
+**Owns:** `src-tauri/src/quotes/{repo,logic,commands}.rs`, `src/lib/mock/quotes.ts`,
+`src/widgets/quotes/**`, `src/routes/Quotes.tsx`, and tests.
+
+**Implement:** CRUD, the daily-selection function and import-line parser in `logic.rs`, and an
+all-or-nothing import in one transaction. Build the widget and the `/quotes` page with the "Add"
+and "Paste many" dialogs. Seed the mock with a few public-domain quotes.
+
+**Tests and verify:** as in SPEC §15, plus the same Verify commands as T7.
+
+---
+
+### T15: Data export and backup (parallel, after S3)
+
+**Spec:** SPEC §16.
+
+**Owns:** `src-tauri/src/data/**` (except `model.rs`), `src/lib/mock/data.ts`,
+`src/routes/Settings.tsx`, `src/widgets/settings/**` (if needed), and tests. `README.md` gets a
+"Restore from a backup" note in the Data section.
+
+**Implement:** path validation, the `VACUUM INTO` snapshot with an atomic rename, and the generic
+JSON dump inside a read transaction. Build the Settings "Data" section using `chooseSavePath`
+from `src/lib/dialog.ts`. Format the size with a local helper.
+
+**Tests:** as in SPEC §16. The Rust tests use a temporary directory; `std::env::temp_dir()` plus a
+unique subfolder is fine, so you don't need a new dev-dependency.
+
+**Verify:** the same commands as T7, plus a manual `npm run tauri dev` check that the real save
+dialog writes a snapshot that `sqlite3 <file> .tables` can read. If you can't do that, report it as
+not verified.
+
+---
+
+### W3: v0.3 wire-up and QA (serial, after T7, T9, T10, and T15 are merged)
+
+**Owns:** `src-tauri/src/lib.rs` (`ipc_tests`), small integration fixes (list each one in the
+summary), `docs/PLAN.md`, `docs/COMPLETED.md`, and `README.md`.
+
+**Implement**
+- IPC tests for all 17 new commands, using the exact JSON that `api.ts` sends.
+- Remove every `TODO(T7|T9|T10|T15)` `allow(dead_code)` marker.
+- Run the real app with a seeded `LIFELOGGING_DB_PATH` database and take screenshots of Today
+  (banner, journal, quote) and of the new pages.
+- Add a "v0.3 manual QA" checklist under Open items for the mouse-driven flows: autosave typing,
+  the rollover flush, the theme dialog, the paste import, both export dialogs, and persistence
+  across a restart.
+- Move S3, T7, T9, T10, T15, and W3 to `COMPLETED.md` with their decisions.
+
+**Verify:** the full Definition of Done in `AGENTS.md`.
+
+---
+
+### S4: v0.4 scaffold (serial, after W3)
+
+**Goal:** freeze the contracts for SPEC §17–§19.
+
+**Owns:** everything.
+
+**Implement**
+- Migrations 006 `reminders`, 007 `notes`, and 008 `goals` plus `goal_progress`.
+- Modules `reminders`, `notes`, and `goals` with final models, stubbed repo, logic, and commands,
+  and all 20 commands registered.
+  - For `NotePatch` and `ReviewAction`, the action serializes as lowercase `"keep"` or `"snooze"`.
+  - For `GoalStatus`, use lowercase values.
+  - For `GoalPatch.targetValue`, decide on the double-option representation (SPEC §19) and
+    document it in `model.rs`.
+- Add `tauri-plugin-opener` (Rust crate and `@tauri-apps/plugin-opener`) and grant
+  `opener:allow-open-url`. Add `src/lib/open.ts` (`openExternal`), working in both modes.
+- Bindings, `types.ts`, `api.ts`, and `queries.ts` (keys `["reminders", …]`, `["notes", …]`, and
+  `["goals", …]`). Put each module's optimistic toggle (`useSetReminderDone`) in `queries.ts` here,
+  as v0.1 did for the habit check.
+- Mock stubs in `src/lib/mock/{reminders,notes,goals}.ts`.
+- Routes `/reminders`, `/goals`, and `/notes` with stub pages, and nav entries in SPEC §12 order.
+  Today slots for `RemindersWidget`, `GoalsWidget`, and `ReviewWidget` in SPEC §12 order.
+
+**Verify:** the full Definition of Done, and the mock app shows the new placeholders.
+
+---
+
+### T12: Reminders (parallel, after S4)
+
+**Spec:** SPEC §17.
+
+**Owns:** `src-tauri/src/reminders/{repo,logic,commands}.rs`, `src/lib/mock/reminders.ts`,
+`src/widgets/reminders/**`, `src/routes/Reminders.tsx`, and tests.
+
+**Implement:** the sort and due-set predicates in `logic.rs`; CRUD, done/undone, and the 30-day
+completed window in `repo.rs`; the widget with its groups, quick add, and snooze; and the
+`/reminders` page with date grouping and the dialog. Seed the mock with overdue, today, and future
+reminders.
+
+**Tests and verify:** as in SPEC §17, plus the T7 Verify commands.
+
+---
+
+### T11: Notes review (parallel, after S4)
+
+**Spec:** SPEC §18.
+
+**Owns:** `src-tauri/src/notes/{repo,logic,commands}.rs`, `src/lib/mock/notes.ts`,
+`src/widgets/notes/**`, `src/routes/Notes.tsx`, and tests.
+
+**Implement:** the interval ladder and the keep, snooze, archive, and unarchive transitions as pure
+functions in `logic.rs`. Validate URLs without a new crate: check the `http://` or `https://` prefix
+and a non-empty host with no whitespace. Build CRUD, search, and the queue, then the widget and the
+`/notes` page. Seed the mock with some notes that are due and some that aren't.
+
+**Tests and verify:** as in SPEC §18, plus the T7 Verify commands.
+
+---
+
+### T14: Goals (parallel, after S4)
+
+**Spec:** SPEC §19.
+
+**Owns:** `src-tauri/src/goals/{repo,logic,commands}.rs`, `src/lib/mock/goals.ts`,
+`src/widgets/goals/**`, `src/routes/Goals.tsx`, and tests.
+
+**Implement:** `percent` and `daysLeft` in `logic.rs`; CRUD, status, reorder, and progress logging
+(set, replace, or delete) in `repo.rs`; `GoalSummary` assembly in one query plus a progress
+aggregate; the widget with inline "Today" logging; and the `/goals` page with its dialog and the
+closed section. Seed the mock with one numeric goal and one milestone goal.
+
+**Tests and verify:** as in SPEC §19, plus the T7 Verify commands.
+
+---
+
+### W4: v0.4 wire-up and QA (serial, after T11, T12, and T14 are merged)
+
+Same shape as W3: IPC tests for all 20 commands, removing the TODO markers, a seeded real-app run
+with screenshots, a "v0.4 manual QA" checklist (reminder toggles and snooze, the note Keep, Snooze,
+and Done flow, an external link opening in the browser, goal logging and completion, and
+persistence across a restart), and closing the milestone in `COMPLETED.md`.
+
+---
+
+### S5: v0.5 scaffold (serial, after W4)
+
+**Goal:** freeze the contracts for SPEC §20–§21.
+
+**Owns:** everything.
+
+**Implement**
+- Migration 009 `puzzles`.
+- Module `recap` (model, a stub `repo.rs`, and `commands.rs` with `get_recap`) and module `puzzle`
+  (model, stubs, and its 3 commands).
+- `RecapDay` reuses the existing `CalendarEvent`, `JournalSummary`, and `Reminder` types and the
+  `HabitColor` enum.
+- Bindings, `types.ts`, `api.ts`, and `queries.ts`. Recap uses the key `["recap", date]`. **Add
+  `["recap"]` invalidation** to the habits, calendar, journal, reminders, goals, and notes mutations
+  (SPEC §20). Puzzle uses the key `["puzzle", date]`.
+- Mock stubs in `src/lib/mock/{recap,puzzle}.ts`. The recap mock may read from the other mock
+  modules' state; it's fine to expose read helpers from `createMockApi()` for this.
+- Today slots: `RecapWidget` first in the grid, and `PuzzleWidget` last (SPEC §12). There are no
+  new routes.
+
+**Verify:** the full Definition of Done.
+
+---
+
+### T8: Recap of yesterday (parallel, after S5)
+
+**Spec:** SPEC §20.
+
+**Owns:** `src-tauri/src/recap/{repo,commands}.rs`, `src/lib/mock/recap.ts`,
+`src/widgets/recap/**`, and tests. As the one exception, it may also add
+`calendar::repo::occurrences_between` and have `upcoming` call it, without changing behavior.
+
+**Implement:** one function per section in `recap/repo.rs`, each taking `&Connection` and the date.
+Reuse the public `habits` and `calendar` logic. Write SQL directly against the journal, reminders,
+goals, and notes tables, rather than editing those modules. Then build the widget.
+
+**Tests and verify:** as in SPEC §20 (the fixture DB covers every section), plus the T7 Verify
+commands. The existing calendar tests must still pass unchanged.
+
+---
+
+### T13: Daily puzzle (parallel, after S5)
+
+**Spec:** SPEC §21.
+
+**Owns:** `src-tauri/src/puzzle/{repo,logic,commands}.rs`, `src/lib/mock/puzzle.ts`,
+`src/widgets/puzzle/**`, and tests.
+
+**Implement:** FNV-1a, SplitMix64, the generator, and the uniqueness-counting solver in `logic.rs`;
+store on first request, plus progress, completion, lock, and reset, in `repo.rs`; and the grid
+widget with keyboard and number-pad input, conflict tinting, and debounced saves. The mock can use
+a hard-coded puzzle and solution.
+
+**Tests and verify:** as in SPEC §21, plus the T7 Verify commands. Report the generator's run time
+in debug and release builds.
+
+---
+
+### W5: v0.5 wire-up and QA (serial, after T8 and T13 are merged)
+
+Same shape as W3: IPC tests for `get_recap` and the 3 puzzle commands, a real-app run with a seeded
+database that covers yesterday in every module, a "v0.5 manual QA" checklist (the recap matches what
+was entered, the journal link from the recap, solving and locking the puzzle, and persistence across
+a restart), and closing the milestone in `COMPLETED.md`. Update `SPEC.md` §10 and the
+`AGENTS.md` layout if the module list changed.
 
 ---
 
@@ -102,9 +398,9 @@ Phase 2 (1 agent, serial)       Wire stubs to real code, IPC tests, real-app QA
 
 ### Prompt template for spawning an agent
 
-> You are implementing task **T\<n\>** of `docs/PLAN.md` in `/Users/jeremywong/personal-apps/lifelogging`.
-> Read `AGENTS.md`, `docs/SPEC.md`, and the T\<n\> section of `docs/PLAN.md`. Edit only the files that
-> task owns. Use Context7 for current Tauri v2, rusqlite, and React docs. When you're done, run the
+> You are implementing task **\<id\>** (for example S3, T7, or W3) of `docs/PLAN.md` in `/Users/jeremywong/personal-apps/lifelogging`.
+> Read `AGENTS.md`, `docs/SPEC.md` (§12 plus the section your task cites), and the \<id\> section of `docs/PLAN.md`. Edit only the files that
+> task owns. The scaffold froze the contract (`model.rs`, `api.ts`, `queries.ts`); if it needs to change, report it instead of editing it. Use Context7 for current Tauri v2, rusqlite, and React docs. When you're done, run the
 > Verify commands and commit on your branch (don't merge). Then report: the branch and commit, what
 > you built, any choices you made where the spec was unclear, any changes needed outside your files,
 > and the verify output.
