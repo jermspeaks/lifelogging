@@ -32,6 +32,31 @@ describe("mock api", () => {
     );
   });
 
+  it("imports a calendar, expands a yearly birthday, replaces by name, and deletes", async () => {
+    const api = createMockApi();
+    const birthday = [
+      "BEGIN:VCALENDAR",
+      "BEGIN:VEVENT",
+      "UID:birthday",
+      "DTSTART;VALUE=DATE:19901103",
+      "RRULE:FREQ=YEARLY",
+      "SUMMARY:Mom's birthday",
+      "END:VEVENT",
+      "END:VCALENDAR",
+    ].join("\r\n");
+    const imported = await api.importCalendar(" Family ", birthday);
+    expect(imported.importedEventCount).toBe(1);
+    expect(imported.calendar.name).toBe("Family");
+    expect(await api.getUpcomingEvents("2026-11-01")).toEqual([
+      expect.objectContaining({ summary: "Mom's birthday", startDate: "2026-11-03", allDay: true }),
+    ]);
+
+    const replacement = await api.importCalendar("Family", birthday.replace("birthday", "other"));
+    expect(replacement.calendar.id).toBe(imported.calendar.id);
+    await api.deleteCalendar(imported.calendar.id);
+    expect(await api.listCalendars()).toEqual([]);
+  });
+
   it("rejects an empty name", async () => {
     await expect(createMockApi().createHabit({ name: "   " })).rejects.toEqual(
       expect.objectContaining({ kind: "Validation" }),

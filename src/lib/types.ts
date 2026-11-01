@@ -1,4 +1,7 @@
 // Re-exports of the ts-rs generated bindings (src/lib/bindings/ is generated: `npm run bindings`).
+export type { Calendar } from "./bindings/Calendar";
+export type { CalendarEvent } from "./bindings/CalendarEvent";
+export type { ImportCalendarResult } from "./bindings/ImportCalendarResult";
 export type { DayEntry } from "./bindings/DayEntry";
 export type { DayStatus } from "./bindings/DayStatus";
 export type { ErrorKind } from "./bindings/ErrorKind";

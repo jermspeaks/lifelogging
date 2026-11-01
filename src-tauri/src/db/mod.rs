@@ -35,7 +35,32 @@ CREATE TABLE habit_checks (
 CREATE INDEX idx_habit_checks_date ON habit_checks(date);
 ";
 
-const MIGRATION_ARRAY: &[M<'static>] = &[M::up(MIGRATION_001)];
+/// Migration 002 adds imported calendars and their source events.
+const MIGRATION_002: &str = "
+CREATE TABLE calendars (
+  id          INTEGER PRIMARY KEY,
+  name        TEXT NOT NULL COLLATE NOCASE UNIQUE,
+  imported_at TEXT NOT NULL
+);
+
+CREATE TABLE events (
+  id          INTEGER PRIMARY KEY,
+  calendar_id INTEGER NOT NULL REFERENCES calendars(id) ON DELETE CASCADE,
+  uid         TEXT NOT NULL,
+  summary     TEXT NOT NULL,
+  start_date  TEXT NOT NULL,
+  start_time  TEXT,
+  end_time    TEXT,
+  all_day     INTEGER NOT NULL CHECK (all_day IN (0, 1)),
+  yearly      INTEGER NOT NULL CHECK (yearly IN (0, 1)),
+  timezone    TEXT,
+  UNIQUE (calendar_id, uid)
+);
+
+CREATE INDEX idx_events_start_date ON events(start_date);
+";
+
+const MIGRATION_ARRAY: &[M<'static>] = &[M::up(MIGRATION_001), M::up(MIGRATION_002)];
 
 /// Ordered list of embedded migrations (SPEC §5).
 pub fn migrations() -> Migrations<'static> {

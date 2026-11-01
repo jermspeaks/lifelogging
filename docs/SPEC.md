@@ -1,4 +1,4 @@
-# Lifelogging — Daily Dashboard: Spec (v0.1 — Habits)
+# Lifelogging — Daily Dashboard: Spec (v0.1 Habits, v0.2 Calendar)
 
 ## 1. Vision
 
@@ -206,8 +206,55 @@ Light/dark follows the OS.
 - Data survives app restart; DB file lives in the app data dir.
 
 ## 10. Future (informs design, not built now)
-- Next widgets, in likely order: Today Calendar (.ics import), Journal, Recap of Yesterday, 3-day lookahead, Annual theme, Quote.
+- Next widgets, in likely order: Journal, Recap of Yesterday, Annual theme, Quote.
 - "How is my life going" scoring: rollups across modules — keep per-day data keyed by local `date` everywhere so modules can be joined by day.
 - Quantity habits: add `target_count` to habits and `count` to checks (additive migration).
 - Export/backup: copy the SQLite file; later JSON export.
 - Agent layer (MCP server over the same Rust repo layer) — another reason logic lives in Rust, not the webview.
+
+## 11. v0.2: Calendar and event lookahead (T6)
+
+### Goals and decisions
+- Import local `.ics` files, including birthdays and ordinary events, without a network connection.
+- Show events for the local `today` and the next three local dates (four dates inclusive) on the Today dashboard.
+- `/calendar` manages imported calendars. Events are read-only in the app; change them in the source calendar and re-import.
+- Each calendar is identified by its trimmed source name, compared case-insensitively (the selected file name by default). Importing again with the same name replaces that calendar's events; calendars with different names are independent, even if they contain matching UIDs.
+- Import is one atomic operation: a malformed or unsupported file leaves the existing calendar untouched. Duplicate non-cancelled UIDs within one file are rejected. A successful re-import replaces, rather than merges, events.
+- Deleting a calendar removes that calendar and its events. There is no event-level delete, edit, or sync.
+- The frontend passes `today` as local `YYYY-MM-DD`; the backend returns occurrences whose local start date is within `today…today+3`. Multi-day events appear on their start date only. All-day `DTEND` follows RFC 5545's exclusive end-date convention.
+
+### ICS subset
+- Accept UTF-8 iCalendar files with `VCALENDAR` and `VEVENT` components; unfold RFC 5545 continuation lines and decode standard escaped text in `SUMMARY`.
+- `UID` and `DTSTART` are required; a missing `SUMMARY` becomes `Untitled event`. `DTEND` is optional (a date-only event defaults to one day; a timed event defaults to zero duration).
+- Support date-only events, floating local date-times, UTC date-times, and IANA `TZID` date-times. UTC and IANA values are converted to the app machine's local time zone for display. Floating values are interpreted in the app machine's local time zone. Ambiguous local times choose the earlier occurrence; nonexistent local times fail import.
+- Support non-recurring events and simple yearly `RRULE:FREQ=YEARLY` events (including common all-day birthdays). Other recurrence rules, `RDATE`/`EXDATE`, recurrence overrides, and unknown/custom `TZID` definitions are rejected rather than silently approximated. Non-leap years do not synthesize a February 29 occurrence.
+- Cancelled events (`STATUS:CANCELLED`) are ignored. Unsupported components/properties that change occurrence identity or timing fail the import; unrelated calendar metadata is ignored.
+- Limit each import to 10 MiB of UTF-8 text and 10,000 VEVENTs. The import screen reports the imported event count and actionable parse/validation errors.
+
+### Data model and migration 002
+- `calendars`: integer `id`, unique trimmed `name`, `imported_at` RFC 3339 UTC.
+- `events`: integer `id`, `calendar_id` FK with `ON DELETE CASCADE`, source `uid`, `summary`, start date, optional start/end time, `all_day`, optional supported recurrence marker, and recurrence time zone. `(calendar_id, uid)` is unique.
+- Imported source text is not retained. `DTEND` is validated and timed end values are retained for display; all-day exclusive end dates are not stored because this widget places multi-day events on their start date only. Yearly events retain their source date/time zone so each instance can be converted to local time for display.
+
+### IPC contract
+
+All commands return `Result<T, AppError>`.
+
+| Command | Args | Returns |
+|---|---|---|
+| `list_calendars` | `{}` | `Calendar[]`, ordered by name |
+| `import_calendar` | `{ name, content }` | `ImportCalendarResult` (`calendar`, `importedEventCount`) |
+| `delete_calendar` | `{ id }` | `null` |
+| `get_upcoming_events` | `{ today }` | `CalendarEvent[]`, sorted by local start date, all-day first, then time and summary |
+
+`Calendar` contains `id`, `name`, `importedAt`, and `eventCount`. `CalendarEvent` contains `id`, `calendarId`, `calendarName`, `uid`, `summary`, local `startDate`, optional local `startTime`/`endTime`, and `allDay`. `ImportCalendarResult` contains `calendar` and `importedEventCount`.
+
+### UI
+- Today adds an Events widget with separate date headings for today and the next three days. Events show their summary, source calendar, and either an all-day label or local start/end time. Empty/loading/error states are explicit; an action links to Calendar when no calendars exist.
+- `/calendar` accepts `.ics` via a native file input, uses the filename as the default calendar name, and displays imported calendars, event counts, last-import time, and a confirmed delete action. Import feedback includes the number of events imported.
+- The app does not launch a separate file dialog plugin. File bytes are read from the browser's selected `File` and sent over typed IPC.
+
+### Verification
+- Rust tests cover migration, transactional replacement/rollback, parsing, date/time conversion, yearly recurrence and event ordering; IPC tests exercise all four commands.
+- Frontend tests cover calendar management/import and the four-day Today widget; mock API behavior mirrors the Rust contract.
+- Real-window mouse QA is required for selecting/importing an `.ics`, re-import replacement, deleting a calendar, and inspecting the Today lookahead. Automated tests do not replace this manual check.

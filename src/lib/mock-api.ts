@@ -2,7 +2,17 @@
 // Mirrors SPEC §6 closely enough to exercise the UI; the Rust implementation is the source of truth.
 import type { Api } from "./api";
 import { addDays, fromISODate, todayLocal } from "./date";
-import type { DayEntry, ErrorPayload, Habit, HabitPatch, NewHabit, TodayHabit } from "./types";
+import type {
+  Calendar,
+  CalendarEvent,
+  DayEntry,
+  ErrorPayload,
+  Habit,
+  HabitPatch,
+  ImportCalendarResult,
+  NewHabit,
+  TodayHabit,
+} from "./types";
 
 const EVERY_DAY = 127;
 
@@ -29,6 +39,10 @@ export function createMockApi(): Api {
   let nextId = 1;
   const habits = new Map<number, Habit>();
   const checks = new Map<number, Set<string>>();
+  let nextCalendarId = 1;
+  let nextEventId = 1;
+  const calendars = new Map<number, Calendar>();
+  const calendarEvents = new Map<number, (CalendarEvent & { yearly: boolean })[]>();
 
   const now = () => new Date().toISOString();
   const createdDate = (h: Habit) => h.createdAt.slice(0, 10);
@@ -188,5 +202,115 @@ export function createMockApi(): Api {
         return todayRow(h, today);
       }),
     getToday: (today) => delay(() => active().map((h) => todayRow(h, today))),
+    listCalendars: () => delay(() => [...calendars.values()].map((c) => ({ ...c }))),
+    importCalendar: (name, content) =>
+      delay(() => {
+        const trimmed = name.trim();
+        if (!trimmed || trimmed.length > 100)
+          fail("Validation", "Calendar name must be 1–100 characters.");
+        const normalized = content.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+        if (!normalized.includes("BEGIN:VCALENDAR") || !normalized.includes("END:VCALENDAR"))
+          fail("Validation", "Calendar file has an incomplete or missing VCALENDAR component.");
+        const eventBlocks = normalized.split(/BEGIN:VEVENT/i).slice(1);
+        const parsed: (CalendarEvent & { yearly: boolean })[] = [];
+        const seen = new Set<string>();
+        for (const block of eventBlocks) {
+          const body = block.split(/END:VEVENT/i)[0] ?? "";
+          const lines = body.split("\n").filter(Boolean);
+          const prop = (prefix: string) =>
+            lines.find((line) => line.toUpperCase().startsWith(prefix));
+          if (prop("STATUS:")?.toUpperCase() === "STATUS:CANCELLED") continue;
+          const uid = prop("UID:")?.slice(4).trim();
+          const start = prop("DTSTART");
+          if (!uid || !start) fail("Validation", "Every event must have a UID and DTSTART.");
+          if (seen.has(uid)) fail("Validation", `Calendar contains duplicate event UID '${uid}'.`);
+          seen.add(uid);
+          const startValue = start.slice(start.indexOf(":") + 1);
+          const allDay = startValue.length === 8;
+          const startDate = allDay
+            ? `${startValue.slice(0, 4)}-${startValue.slice(4, 6)}-${startValue.slice(6, 8)}`
+            : `${startValue.slice(0, 4)}-${startValue.slice(4, 6)}-${startValue.slice(6, 8)}`;
+          const summaryLine = prop("SUMMARY:");
+          const summary =
+            (summaryLine?.slice(summaryLine.indexOf(":") + 1) ?? "Untitled event")
+              .replace(/\\n/gi, "\n")
+              .replace(/\\,/g, ",")
+              .replace(/\\;/g, ";")
+              .trim() || "Untitled event";
+          const end = prop("DTEND");
+          const endValue = end?.slice(end.indexOf(":") + 1) ?? "";
+          const startTime = allDay
+            ? null
+            : `${startValue.slice(9, 11)}:${startValue.slice(11, 13)}`;
+          const endTime =
+            !endValue || endValue.length === 8
+              ? null
+              : `${endValue.slice(9, 11)}:${endValue.slice(11, 13)}`;
+          const yearly = /RRULE:FREQ=YEARLY/i.test(body);
+          if (prop("RRULE:") && !yearly)
+            fail("Validation", "Only simple yearly recurrence is supported.");
+          parsed.push({
+            id: nextEventId++,
+            calendarId: 0,
+            calendarName: trimmed,
+            uid,
+            summary,
+            startDate,
+            startTime,
+            endTime,
+            allDay,
+            yearly,
+          });
+        }
+        if (parsed.length > 10_000)
+          fail("Validation", "Calendar contains more than 10,000 events.");
+        const existing = [...calendars.values()].find(
+          (c) => c.name.toLowerCase() === trimmed.toLowerCase(),
+        );
+        const calendarId = existing?.id ?? nextCalendarId++;
+        const calendar: Calendar = {
+          id: calendarId,
+          name: trimmed,
+          importedAt: now(),
+          eventCount: parsed.length,
+        };
+        parsed.forEach((event) => {
+          event.calendarId = calendarId;
+          event.calendarName = trimmed;
+        });
+        calendars.set(calendarId, calendar);
+        calendarEvents.set(calendarId, parsed);
+        return {
+          calendar: { ...calendar },
+          importedEventCount: parsed.length,
+        } satisfies ImportCalendarResult;
+      }),
+    deleteCalendar: (id) =>
+      delay(() => {
+        if (!calendars.delete(id)) fail("NotFound", `Calendar ${id} not found`);
+        calendarEvents.delete(id);
+      }),
+    getUpcomingEvents: (today) =>
+      delay(() => {
+        const upcoming: CalendarEvent[] = [];
+        for (const events of calendarEvents.values()) {
+          for (const event of events) {
+            for (let offset = 0; offset < 4; offset++) {
+              const date = addDays(today, offset);
+              const matches = event.yearly
+                ? date.slice(5) === event.startDate.slice(5) && date >= event.startDate
+                : date === event.startDate;
+              if (matches) upcoming.push({ ...event, startDate: date });
+            }
+          }
+        }
+        return upcoming.sort(
+          (a, b) =>
+            a.startDate.localeCompare(b.startDate) ||
+            Number(b.allDay) - Number(a.allDay) ||
+            (a.startTime ?? "").localeCompare(b.startTime ?? "") ||
+            a.summary.localeCompare(b.summary),
+        );
+      }),
   };
 }

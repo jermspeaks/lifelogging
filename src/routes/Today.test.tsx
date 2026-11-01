@@ -4,7 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router";
 
 import { api } from "@/lib/api";
-import type { Habit, TodayHabit } from "@/lib/types";
+import type { CalendarEvent, Habit, TodayHabit } from "@/lib/types";
 
 import Today from "./Today";
 
@@ -16,7 +16,7 @@ vi.mock("@/lib/date", async (importOriginal) => ({
 }));
 
 vi.mock("@/lib/api", () => ({
-  api: { getToday: vi.fn(), setHabitCheck: vi.fn() },
+  api: { getToday: vi.fn(), setHabitCheck: vi.fn(), getUpcomingEvents: vi.fn() },
   errorMessage: (e: unknown) => String(e),
 }));
 
@@ -47,6 +47,18 @@ function row(id: number, name: string, scheduledToday: boolean, doneToday: boole
   };
 }
 
+const EVENT: CalendarEvent = {
+  id: 1,
+  calendarId: 1,
+  calendarName: "Family",
+  uid: "birthday",
+  summary: "Mom's birthday",
+  startDate: TODAY,
+  startTime: null,
+  endTime: null,
+  allDay: true,
+};
+
 const ROWS: TodayHabit[] = [
   row(1, "Meditate", true, true),
   row(2, "Read", true, false),
@@ -70,6 +82,7 @@ function renderToday() {
 beforeEach(() => {
   vi.mocked(api.getToday).mockReset().mockResolvedValue(ROWS);
   vi.mocked(api.setHabitCheck).mockReset();
+  vi.mocked(api.getUpcomingEvents).mockReset().mockResolvedValue([]);
 });
 
 describe("Today dashboard", () => {
@@ -111,6 +124,30 @@ describe("Today dashboard", () => {
     resolve(row(2, "Read", true, true));
     await waitFor(() => expect(api.getToday).toHaveBeenCalledTimes(2));
     expect(checkbox).toBeChecked();
+  });
+
+  it("groups events by local date and shows all-day and timed details", async () => {
+    vi.mocked(api.getUpcomingEvents).mockResolvedValue([
+      EVENT,
+      {
+        ...EVENT,
+        id: 2,
+        uid: "appointment",
+        summary: "Dentist",
+        startDate: "2026-10-31",
+        startTime: "09:30",
+        endTime: "10:15",
+        allDay: false,
+      },
+    ]);
+    renderToday();
+
+    expect(await screen.findByText("Mom's birthday")).toBeInTheDocument();
+    expect(screen.getByText("All day")).toBeInTheDocument();
+    expect(screen.getByText("Dentist")).toBeInTheDocument();
+    expect(screen.getByText("09:30–10:15")).toBeInTheDocument();
+    expect(screen.getByText(/Tomorrow/)).toBeInTheDocument();
+    expect(api.getUpcomingEvents).toHaveBeenCalledWith(TODAY);
   });
 
   it("shows an empty state linking to the Habits page", async () => {

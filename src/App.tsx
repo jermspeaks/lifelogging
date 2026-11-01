@@ -3,6 +3,7 @@ import { createHashRouter, RouterProvider } from "react-router";
 
 import { AppLayout } from "@/components/AppLayout";
 import { Toaster } from "@/components/ui/sonner";
+import Calendar from "@/routes/Calendar";
 import Habits from "@/routes/Habits";
 import Today from "@/routes/Today";
 
@@ -20,6 +21,7 @@ const router = createHashRouter([
     children: [
       { index: true, element: <Today /> },
       { path: "habits", element: <Habits /> },
+      { path: "calendar", element: <Calendar /> },
     ],
   },
 ]);
