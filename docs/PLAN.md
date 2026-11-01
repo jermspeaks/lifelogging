@@ -9,7 +9,7 @@ are in [`AGENTS.md`](../AGENTS.md). The product spec is [`SPEC.md`](./SPEC.md).
 | Milestone | State |
 |---|---|
 | **v0.1: Habits** (shell + habit CRUD + Today checklist) | ✅ Built and committed (T0–T5, 2026-10-31). Manual QA is partly complete; remaining checks are below. |
-| v0.2: second dashboard module | Not started. Pick from the [candidates](#next-candidate-tasks). |
+| **v0.2: Today Calendar (T6)** | ✅ Built and automated checks pass. Real-window QA remains below. |
 
 ## Open items
 
@@ -33,7 +33,17 @@ What's left is confirming the remaining flows with a real mouse in the real webv
 - [ ] Permanent delete asks for confirmation and removes the habit and its history.
 - [ ] Invalid input (an empty name) shows an inline error, and the app doesn't crash.
 
-If something fails, add a task below with the failing step and fix it before starting v0.2.
+If a flow fails, record it below and fix it.
+
+### 2. v0.2 Calendar real-window QA (needs a human)
+
+Run `npm run tauri dev` with a scratch database (`LIFELOGGING_DB_PATH=/tmp/qa.db`) and use the real webview:
+
+- [ ] Import a valid `.ics` file and confirm today's and upcoming events appear in the correct local-date groups.
+- [ ] Replace a source and confirm its ID/source row remains while its events change.
+- [ ] Remove a source, confirm the prompt, then verify its events disappear after a restart.
+- [ ] Confirm annual all-day birthday and timed event presentation with a representative calendar.
+- [ ] Try a malformed file and verify the inline error leaves prior source data intact.
 
 ## Next: candidate tasks
 
@@ -42,8 +52,6 @@ covering its data model, rules, IPC contract, and UI. Then plan it here with the
 a contract-first scaffold task, parallel tasks with explicit file ownership, then wire-up. See
 "Running a plan with parallel agents" below. Habit tracking from `ideas.md` is delivered in v0.1.
 
-- **T6: Today Calendar and event lookahead.** Import `.ics` calendars (including birthdays and other
-  events) into an `events` table; show today's events and the next three days on the dashboard.
 - **T7: Journal widget.** Create and edit one journal entry per local date, keyed by `date` like
   `habit_checks`.
 - **T8: Recap of Yesterday.** Summarize the prior local day's activity across available modules.

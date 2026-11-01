@@ -211,3 +211,67 @@ Light/dark follows the OS.
 - Quantity habits: add `target_count` to habits and `count` to checks (additive migration).
 - Export/backup: copy the SQLite file; later JSON export.
 - Agent layer (MCP server over the same Rust repo layer) — another reason logic lives in Rust, not the webview.
+
+## 11. v0.2: Today Calendar and event lookahead
+
+### Scope and decisions
+- The Today dashboard adds a Calendar widget showing events whose local start date is today or one of the following three dates (four dates inclusive).
+- Import one or more local `.ics` files from the widget. The webview reads the user-selected file and sends its name and UTF-8 contents to a synchronous Tauri command; it never accesses SQLite. Imported events remain local and work offline.
+- A calendar source is one imported file. Importing a new file creates a source; choosing Replace on an existing source atomically replaces its events while preserving its source ID. Remove deletes the source and its events. The same filename may be used by multiple sources.
+- Import is all-or-nothing. Accept at most 5 MiB of UTF-8 input and 5,000 VEVENTs. Reject malformed calendars or events that lack a UID, SUMMARY, or DTSTART; skip `STATUS:CANCELLED`. Duplicate UIDs within one source are invalid. A failed replacement must retain the previous data.
+- Support one-time events and RFC 5545 recurrence using `RRULE`, `RDATE`, and `EXDATE`, including annual all-day birthdays. Recurrence overrides (`RECURRENCE-ID`) are not supported. Accept floating local times, UTC, and IANA `TZID` values; reject unknown time zones and custom `VTIMEZONE` definitions. Timed events are converted to the machine's local time for display. All-day events retain their local calendar date. Multi-day events appear only on their start date. `DTEND` follows the iCalendar exclusive-end convention for all-day events.
+- Event summaries and descriptions use RFC 5545 text unescaping. Reminders/alarms, todos, invitations, remote subscriptions/sync, editing individual imported events, and multi-user sharing are out of scope.
+
+### Data model and IPC contract
+
+Migration 002 adds:
+
+```sql
+CREATE TABLE calendar_sources (
+  id          INTEGER PRIMARY KEY,
+  name        TEXT NOT NULL,
+  imported_at TEXT NOT NULL,
+  timezone    TEXT
+);
+CREATE TABLE events (
+  id           INTEGER PRIMARY KEY,
+  source_id    INTEGER NOT NULL REFERENCES calendar_sources(id) ON DELETE CASCADE,
+  uid          TEXT NOT NULL,
+  summary      TEXT NOT NULL,
+  description  TEXT,
+  location     TEXT,
+  start_date   TEXT NOT NULL,
+  all_day      INTEGER NOT NULL,
+  event_ical   TEXT NOT NULL,
+  UNIQUE (source_id, uid)
+);
+CREATE INDEX idx_events_source ON events(source_id);
+```
+
+Each event row stores its parsed display fields and a canonical serialized VEVENT used by the RFC 5545 recurrence engine. `start_date` is the event's local start date (used only to skip definitions that begin after the requested window). Event rows are series definitions, not pre-expanded occurrences.
+
+All commands return `Result<T, AppError>`:
+
+| Command | Args | Returns |
+|---|---|---|
+| `list_calendar_sources` | `{}` | `CalendarSource[]` ordered by name then ID |
+| `import_calendar` | `{ name, content, sourceId?: number }` | `CalendarSource` including the number of imported events; omit `sourceId` to create a source, provide it to atomically replace that source |
+| `delete_calendar` | `{ sourceId }` | `null` |
+| `get_upcoming_events` | `{ today }` | `EventOccurrence[]` for local dates `today…today+3`, sorted by date, all-day first, then local start time and summary |
+
+```ts
+type CalendarSource = { id: number; name: string; importedAt: string; eventCount: number };
+type EventOccurrence = {
+  id: number; sourceId: number; sourceName: string; uid: string;
+  summary: string; description: string | null; location: string | null;
+  date: string; allDay: boolean; startTime: string | null; endTime: string | null;
+};
+```
+
+The client supplies `today` as local `YYYY-MM-DD`; Rust validates it and never chooses the calendar day from its own clock. The event query expands recurrence only across the requested four-day window. Invalid dates, future-range overflow, invalid ICS data, unsupported recurrence/time-zone values, and missing sources return typed errors.
+
+### UI
+- Add a Calendar widget to the Today grid, with a grouped four-day agenda, all-day/timed presentation, source name, and clear empty/loading/error states.
+- An Import button opens a file input restricted to `.ics`. Show a clear inline error for unreadable or rejected files and success feedback after the backend confirms import.
+- List imported sources in the widget. Each source has Replace and Remove actions; Remove requires confirmation. On replace, read a newly selected `.ics` file and retain the source ID.
+- Refresh upcoming-event and source queries after import, replacement, or removal. The mock API mirrors the UI workflow with small in-memory sample events; the Rust implementation remains the source of truth.

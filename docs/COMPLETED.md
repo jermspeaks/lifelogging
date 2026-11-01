@@ -4,6 +4,35 @@ Finished tasks from [`PLAN.md`](./PLAN.md), newest first. Each entry records wha
 decisions made where [`SPEC.md`](./SPEC.md) was ambiguous, and how the work was verified. Open work
 stays in `PLAN.md`. Ongoing conventions live in [`AGENTS.md`](../AGENTS.md).
 
+## T6: Today Calendar and event lookahead (2026-10-31)
+
+**Built**
+- Added migration 002 and a Rust `calendar` module for `.ics` validation, source import/replace/remove,
+  and a local four-day agenda query. Recurrence expansion supports the scoped RFC 5545 `RRULE`, `RDATE`,
+  and `EXDATE` behavior; the existing events are stored as series definitions.
+- Registered and IPC-tested the four calendar commands. Added generated TypeScript bindings and typed
+  API/query/mutation hooks.
+- Added the Today Calendar widget with grouped local dates, all-day/timed event details, source names,
+  `.ics` import and replacement, confirmed removal, and loading/empty/error states.
+- Extended the in-memory mock API and added regression tests for source lifecycle, annual all-day events,
+  date grouping, replacement, removal confirmation, and import errors.
+
+**Decisions**
+- Followed SPEC §11's four-date inclusive agenda window and import limits/unsupported-case decisions.
+  The webview supplies the local `today` date; recurrence and display conversion remain in Rust.
+- The mock parses the subset needed for UI workflows and annual birthday coverage; the Rust RFC 5545
+  implementation is the source of truth.
+- Real-webview click-through is still a human QA item in `PLAN.md`; it was not claimed as automated.
+
+**Verified**
+- `npm run bindings`
+- `npm run typecheck`, `npm run lint`, `npm test` (27 frontend tests), `npx prettier --check .`,
+  and `npm run build` (Vite reports a 500 kB chunk-size advisory).
+- From `src-tauri/`: `cargo test` (47 tests), `cargo clippy --all-targets -- -D warnings`,
+  and `cargo fmt --check`.
+
+---
+
 ## v0.1: Habits (2026-10-30 → 2026-10-31)
 
 v0.1 delivered the dashboard shell and the first widget: full CRUD for habits, a Today checklist

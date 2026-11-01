@@ -7,6 +7,8 @@ import type { HabitPatch, NewHabit, TodayHabit } from "./types";
 export const queryKeys = {
   habits: (includeArchived: boolean) => ["habits", { includeArchived }] as const,
   today: (date: string) => ["today", date] as const,
+  calendarSources: ["calendarSources"] as const,
+  upcomingEvents: (date: string) => ["upcomingEvents", date] as const,
 };
 
 /** Every habit mutation can change both the manage list and the dashboard. */
@@ -30,6 +32,53 @@ export function useTodayHabits(today: string) {
   return useQuery({
     queryKey: queryKeys.today(today),
     queryFn: () => api.getToday(today),
+  });
+}
+
+export function useCalendarSources() {
+  return useQuery({
+    queryKey: queryKeys.calendarSources,
+    queryFn: () => api.listCalendarSources(),
+  });
+}
+
+export function useUpcomingEvents(today: string) {
+  return useQuery({
+    queryKey: queryKeys.upcomingEvents(today),
+    queryFn: () => api.getUpcomingEvents(today),
+  });
+}
+
+function useInvalidateCalendars() {
+  const qc = useQueryClient();
+  return () =>
+    Promise.all([
+      qc.invalidateQueries({ queryKey: queryKeys.calendarSources }),
+      qc.invalidateQueries({ queryKey: ["upcomingEvents"] }),
+    ]);
+}
+
+export function useImportCalendar() {
+  const invalidate = useInvalidateCalendars();
+  return useMutation({
+    mutationFn: ({
+      name,
+      content,
+      sourceId,
+    }: {
+      name: string;
+      content: string;
+      sourceId?: number;
+    }) => api.importCalendar(name, content, sourceId),
+    onSettled: invalidate,
+  });
+}
+
+export function useDeleteCalendar() {
+  const invalidate = useInvalidateCalendars();
+  return useMutation({
+    mutationFn: (sourceId: number) => api.deleteCalendar(sourceId),
+    onSettled: invalidate,
   });
 }
 

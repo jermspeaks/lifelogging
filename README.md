@@ -1,6 +1,6 @@
 # Lifelogging
 
-A local-first desktop daily dashboard (Tauri v2 + Rust + SQLite + React).
+A local-first desktop daily dashboard (Tauri v2 + Rust + SQLite + React), with habit tracking and a four-day calendar agenda.
 
 - [`docs/SPEC.md`](docs/SPEC.md): what we're building
 - [`docs/PLAN.md`](docs/PLAN.md): open and upcoming work
@@ -19,12 +19,14 @@ npm run dev:mock      # UI only, in a browser, against an in-memory mock backend
 
 ## Data
 
-Habits live in a single SQLite file:
+Habits and imported calendar events live in a single SQLite file:
 
 ```
 ~/Library/Application Support/com.jermspeaks.lifelogging/lifelogging.db
 ```
 
+- Import local `.ics` calendars from the Calendar widget on Today. Imported events remain on this
+  device and can be replaced or removed from the widget.
 - **Use a different database:** `LIFELOGGING_DB_PATH=/tmp/scratch.db npm run tauri dev`. Handy for
   testing with seeded data.
 - **Back up:** quit the app, then copy `lifelogging.db`.

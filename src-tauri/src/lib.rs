@@ -1,3 +1,4 @@
+mod calendar;
 mod db;
 mod error;
 mod habits;
@@ -7,6 +8,7 @@ use std::sync::Mutex;
 
 use tauri::{Builder, Manager, Runtime};
 
+use calendar::commands as calendar_commands;
 use habits::commands;
 
 /// Overrides the database location (dev/testing). Default: `<app_data_dir>/lifelogging.db`.
@@ -37,6 +39,10 @@ fn with_commands<R: Runtime>(builder: Builder<R>) -> Builder<R> {
         commands::reorder_habits,
         commands::set_habit_check,
         commands::get_today,
+        calendar_commands::list_calendar_sources,
+        calendar_commands::import_calendar,
+        calendar_commands::delete_calendar,
+        calendar_commands::get_upcoming_events,
     ])
 }
 
@@ -173,6 +179,54 @@ mod ipc_tests {
         invoke(&w, "delete_habit", json!({ "id": walk_id })).unwrap();
         let err = invoke(&w, "get_habit", json!({ "id": walk_id })).unwrap_err();
         assert_eq!(err["kind"], "NotFound");
+    }
+
+    #[test]
+    fn calendar_commands_round_trip_over_ipc() {
+        let w = app();
+        let today = chrono::Local::now().date_naive();
+        let today_iso = today.format("%Y-%m-%d").to_string();
+        let today_ics = today.format("%Y%m%d").to_string();
+        let content = format!(
+            "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nUID:ipc-event\r\nSUMMARY:IPC event\r\nDTSTART;VALUE=DATE:{today_ics}\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n"
+        );
+
+        let source = invoke(
+            &w,
+            "import_calendar",
+            json!({ "name": "ipc.ics", "content": content }),
+        )
+        .unwrap();
+        assert_eq!(source["name"], "ipc.ics");
+        assert_eq!(source["eventCount"], 1);
+        let source_id = source["id"].clone();
+
+        let sources = invoke(&w, "list_calendar_sources", json!({})).unwrap();
+        assert_eq!(sources.as_array().unwrap().len(), 1);
+        let upcoming = invoke(&w, "get_upcoming_events", json!({ "today": today_iso })).unwrap();
+        assert_eq!(upcoming[0]["summary"], "IPC event");
+
+        let replacement = content.replace("IPC event", "Replaced event");
+        let updated = invoke(
+            &w,
+            "import_calendar",
+            json!({ "name": "ipc.ics", "content": replacement, "sourceId": source_id }),
+        )
+        .unwrap();
+        assert_eq!(updated["id"], source_id);
+        assert_eq!(
+            invoke(&w, "get_upcoming_events", json!({ "today": today_iso })).unwrap()[0]["summary"],
+            "Replaced event"
+        );
+
+        invoke(&w, "delete_calendar", json!({ "sourceId": source_id })).unwrap();
+        assert!(
+            invoke(&w, "list_calendar_sources", json!({}))
+                .unwrap()
+                .as_array()
+                .unwrap()
+                .is_empty()
+        );
     }
 
     #[test]

@@ -16,7 +16,14 @@ vi.mock("@/lib/date", async (importOriginal) => ({
 }));
 
 vi.mock("@/lib/api", () => ({
-  api: { getToday: vi.fn(), setHabitCheck: vi.fn() },
+  api: {
+    getToday: vi.fn(),
+    setHabitCheck: vi.fn(),
+    getUpcomingEvents: vi.fn(),
+    listCalendarSources: vi.fn(),
+    importCalendar: vi.fn(),
+    deleteCalendar: vi.fn(),
+  },
   errorMessage: (e: unknown) => String(e),
 }));
 
@@ -70,6 +77,8 @@ function renderToday() {
 beforeEach(() => {
   vi.mocked(api.getToday).mockReset().mockResolvedValue(ROWS);
   vi.mocked(api.setHabitCheck).mockReset();
+  vi.mocked(api.getUpcomingEvents).mockReset().mockResolvedValue([]);
+  vi.mocked(api.listCalendarSources).mockReset().mockResolvedValue([]);
 });
 
 describe("Today dashboard", () => {
@@ -77,7 +86,9 @@ describe("Today dashboard", () => {
     renderToday();
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(/Friday, October 30/);
     expect(await screen.findByText("1 of 3 habits done")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Calendar" })).toBeInTheDocument();
     expect(api.getToday).toHaveBeenCalledWith(TODAY);
+    expect(api.getUpcomingEvents).toHaveBeenCalledWith(TODAY);
   });
 
   it("lists scheduled habits first and collapses the unscheduled group", async () => {

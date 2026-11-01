@@ -1,5 +1,6 @@
 import { fromISODate, useToday } from "@/lib/date";
 import { useTodayHabits } from "@/lib/queries";
+import { CalendarWidget } from "@/widgets/calendar/CalendarWidget";
 import { HabitChecklist } from "@/widgets/habits/HabitChecklist";
 
 const headerFmt = new Intl.DateTimeFormat(undefined, {
@@ -31,9 +32,9 @@ export default function Today() {
         </h1>
         {summary && <p className="text-sm text-muted-foreground">{summary}</p>}
       </header>
-      {/* Widget grid: future widgets (calendar, journal…) slot in here. */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <HabitChecklist today={today} className="lg:col-span-2" />
+        <CalendarWidget today={today} />
       </div>
     </div>
   );

@@ -35,7 +35,32 @@ CREATE TABLE habit_checks (
 CREATE INDEX idx_habit_checks_date ON habit_checks(date);
 ";
 
-const MIGRATION_ARRAY: &[M<'static>] = &[M::up(MIGRATION_001)];
+/// Migration 002: local calendar sources and imported event series (SPEC §11).
+const MIGRATION_002: &str = "
+CREATE TABLE calendar_sources (
+  id          INTEGER PRIMARY KEY,
+  name        TEXT NOT NULL,
+  imported_at TEXT NOT NULL,
+  timezone    TEXT
+);
+
+CREATE TABLE events (
+  id           INTEGER PRIMARY KEY,
+  source_id    INTEGER NOT NULL REFERENCES calendar_sources(id) ON DELETE CASCADE,
+  uid          TEXT NOT NULL,
+  summary      TEXT NOT NULL,
+  description  TEXT,
+  location     TEXT,
+  start_date   TEXT NOT NULL,
+  all_day      INTEGER NOT NULL,
+  event_ical   TEXT NOT NULL,
+  UNIQUE (source_id, uid)
+);
+
+CREATE INDEX idx_events_source ON events(source_id);
+";
+
+const MIGRATION_ARRAY: &[M<'static>] = &[M::up(MIGRATION_001), M::up(MIGRATION_002)];
 
 /// Ordered list of embedded migrations (SPEC §5).
 pub fn migrations() -> Migrations<'static> {
@@ -88,12 +113,12 @@ mod tests {
         assert_eq!(fk, 1);
         let tables: i64 = conn
             .query_row(
-                "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name IN ('habits', 'habit_checks')",
+                "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name IN ('habits', 'habit_checks', 'calendar_sources', 'events')",
                 [],
                 |r| r.get(0),
             )
             .unwrap();
-        assert_eq!(tables, 2);
+        assert_eq!(tables, 4);
     }
 
     #[test]
