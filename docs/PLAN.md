@@ -10,7 +10,7 @@ are in [`AGENTS.md`](../AGENTS.md). The product spec is [`SPEC.md`](./SPEC.md).
 |---|---|
 | **v0.1: Habits** (shell + habit CRUD + Today checklist) | ✅ Built and committed (T0–T5, 2026-10-31). Manual QA is partly complete; remaining checks are below. |
 | v0.2: Calendar and event lookahead | ✅ Implemented; real-window mouse QA remains open below. |
-| v0.3: Reflect (Journal, Annual theme, Quotes, Export) | S3 scaffold implemented; T7, T9, T10, and T15 are ready after the scaffold is committed. |
+| v0.3: Reflect (Journal, Annual theme, Quotes, Export) | ✅ Integrated (S3, T7, T9, T10, T15, W3); real-window QA and screenshots remain open below. |
 | v0.4: Plan (Reminders, Notes review, Goals) | 📝 Specced (SPEC §17–§19); not started. |
 | v0.5: Look back (Recap, Puzzle) | 📝 Specced (SPEC §20–§21); not started. |
 
@@ -51,15 +51,33 @@ Run `npm run tauri dev` and use the real file chooser and mouse interactions. Te
 
 The backend IPC and mock UI flows are automated; this checklist specifically covers the real macOS webview and file chooser.
 
-## Roadmap: v0.3–v0.5
+### 3. v0.3 real-window QA (needs a human)
 
-The remaining Daily View ideas in [`ideas.md`](../ideas.md) (T7–T15) are specified in `SPEC.md`
-§12–§21. **Read §12 "Product decisions to confirm" before starting a milestone.** Once a milestone's
-scaffold is committed, its contract is frozen.
+Run `npm run tauri dev`, preferably with a scratch database. This machine/session did not provide
+real-window access, screenshots, or native save-dialog verification; every item below remains open.
+
+- [ ] On Today, type a journal entry and confirm autosave after typing stops and on blur, including
+      the visible saved/error status.
+- [ ] With journal text still pending, advance the local date and confirm the old date is flushed
+      before the editor loads the new date.
+- [ ] Create and edit an annual theme in the theme dialog; confirm the Today banner and Themes page
+      reflect the saved values.
+- [ ] Paste multiple quotes, including a duplicate, and confirm the import result counts and list.
+- [ ] Use the database backup save dialog; verify the chosen snapshot opens with `sqlite3` while the
+      app remains open.
+- [ ] Use the JSON export save dialog; confirm the chosen file contains the expected data.
+- [ ] Restart the app and confirm journal entries, themes, and quotes persist.
+- [ ] Capture Today (theme banner, journal, quote) and the Journal, Themes, Quotes, and Settings
+      pages for a visual review.
+
+## Roadmap: v0.4–v0.5
+
+The remaining Daily View ideas in [`ideas.md`](../ideas.md) are specified in `SPEC.md` §12–§21.
+**Read §12 "Product decisions to confirm" before starting a milestone.** Once a milestone's scaffold
+is committed, its contract is frozen.
 
 | Milestone | Scaffold (serial) | Parallel tasks | Wire-up (serial) | Migrations |
 |---|---|---|---|---|
-| **v0.3: Reflect** | S3 | T7 Journal · T9 Annual theme · T10 Quotes · T15 Export and backup | W3 | 003 journal, 004 annual_themes, 005 quotes |
 | **v0.4: Plan** | S4 | T12 Reminders · T11 Notes review · T14 Goals | W4 | 006 reminders, 007 notes, 008 goals |
 | **v0.5: Look back** | S5 | T8 Recap · T13 Puzzle | W5 | 009 puzzles |
 
@@ -88,96 +106,6 @@ The files that every module touches (`db/mod.rs`, `lib.rs`, `api.ts`, `queries.t
 Parallel tasks then fill in the module's `repo.rs`, `logic.rs`, `commands.rs`, mock file, widgets,
 and route, with tests. The wire-up task adds an IPC test per command, runs the real app against a
 seeded database, writes the human QA checklist, and closes the milestone in `COMPLETED.md`.
-
----
-
-### T7: Journal (parallel, after S3)
-
-**Spec:** SPEC §13.
-
-**Owns:** `src-tauri/src/journal/{repo,logic,commands}.rs`, `src/lib/mock/journal.ts`,
-`src/widgets/journal/**`, `src/routes/Journal.tsx`, and tests next to them.
-
-**Implement:** the repo and rules 1–5, the command bodies (with command-level tests against
-`&Connection` helpers), the mock with 3 seeded past entries, the Today widget with debounced
-autosave and the rollover flush, and the `/journal` page with search, paging, a date jump, delete,
-and the `?date=` parameter.
-
-**Tests:** the list in SPEC §13 "Verification".
-
-**Verify:** `cd src-tauri && cargo test && cargo clippy --all-targets -- -D warnings && cargo fmt --check`,
-then `npm run typecheck && npm run lint && npm test && npx prettier --check .`, then click through
-with `npm run dev:mock`.
-
----
-
-### T9: Annual theme (parallel, after S3)
-
-**Spec:** SPEC §14.
-
-**Owns:** `src-tauri/src/themes/{repo,logic,commands}.rs`, `src/lib/mock/themes.ts`,
-`src/widgets/themes/**` (`ThemeBanner`, `ThemeDialog`), `src/routes/Themes.tsx`, and tests.
-
-**Implement:** the upsert, validation, list, and delete. The banner shows the day-of-year progress,
-computed in a small pure helper in `src/widgets/themes/` (not in `date.ts`, which isn't owned). Add
-the dialog and the `/themes` page. Seed the mock with the current year's theme.
-
-**Tests and verify:** as in SPEC §14, plus the same Verify commands as T7.
-
----
-
-### T10: Quotes (parallel, after S3)
-
-**Spec:** SPEC §15.
-
-**Owns:** `src-tauri/src/quotes/{repo,logic,commands}.rs`, `src/lib/mock/quotes.ts`,
-`src/widgets/quotes/**`, `src/routes/Quotes.tsx`, and tests.
-
-**Implement:** CRUD, the daily-selection function and import-line parser in `logic.rs`, and an
-all-or-nothing import in one transaction. Build the widget and the `/quotes` page with the "Add"
-and "Paste many" dialogs. Seed the mock with a few public-domain quotes.
-
-**Tests and verify:** as in SPEC §15, plus the same Verify commands as T7.
-
----
-
-### T15: Data export and backup (parallel, after S3)
-
-**Spec:** SPEC §16.
-
-**Owns:** `src-tauri/src/data/**` (except `model.rs`), `src/lib/mock/data.ts`,
-`src/routes/Settings.tsx`, `src/widgets/settings/**` (if needed), and tests. `README.md` gets a
-"Restore from a backup" note in the Data section.
-
-**Implement:** path validation, the `VACUUM INTO` snapshot with an atomic rename, and the generic
-JSON dump inside a read transaction. Build the Settings "Data" section using `chooseSavePath`
-from `src/lib/dialog.ts`. Format the size with a local helper.
-
-**Tests:** as in SPEC §16. The Rust tests use a temporary directory; `std::env::temp_dir()` plus a
-unique subfolder is fine, so you don't need a new dev-dependency.
-
-**Verify:** the same commands as T7, plus a manual `npm run tauri dev` check that the real save
-dialog writes a snapshot that `sqlite3 <file> .tables` can read. If you can't do that, report it as
-not verified.
-
----
-
-### W3: v0.3 wire-up and QA (serial, after T7, T9, T10, and T15 are merged)
-
-**Owns:** `src-tauri/src/lib.rs` (`ipc_tests`), small integration fixes (list each one in the
-summary), `docs/PLAN.md`, `docs/COMPLETED.md`, and `README.md`.
-
-**Implement**
-- IPC tests for all 17 new commands, using the exact JSON that `api.ts` sends.
-- Remove every `TODO(T7|T9|T10|T15)` `allow(dead_code)` marker.
-- Run the real app with a seeded `LIFELOGGING_DB_PATH` database and take screenshots of Today
-  (banner, journal, quote) and of the new pages.
-- Add a "v0.3 manual QA" checklist under Open items for the mouse-driven flows: autosave typing,
-  the rollover flush, the theme dialog, the paste import, both export dialogs, and persistence
-  across a restart.
-- Move S3, T7, T9, T10, T15, and W3 to `COMPLETED.md` with their decisions.
-
-**Verify:** the full Definition of Done in `AGENTS.md`.
 
 ---
 

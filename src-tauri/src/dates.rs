@@ -19,6 +19,7 @@ pub fn parse_date(value: &str) -> AppResult<NaiveDate> {
         .map_err(|_| AppError::Validation("Date must be a valid YYYY-MM-DD date".into()))
 }
 
+#[allow(dead_code)] // Retained for upcoming modules with local-time fields (SPEC §12).
 pub fn parse_time(value: &str) -> AppResult<NaiveTime> {
     if value.len() != 5
         || value.as_bytes()[2] != b':'

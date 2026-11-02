@@ -12,7 +12,6 @@ use crate::error::{AppError, AppResult};
 pub struct Db(pub Mutex<Connection>);
 
 /// Managed path to the live database, used by export commands.
-#[allow(dead_code)] // TODO(T15): consumed by the export commands.
 pub struct DbPath(pub PathBuf);
 
 /// Migration 001, exactly as in SPEC §5.

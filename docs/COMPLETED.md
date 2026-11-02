@@ -4,6 +4,95 @@ Finished tasks from [`PLAN.md`](./PLAN.md), newest first. Each entry records wha
 decisions made where [`SPEC.md`](./SPEC.md) was ambiguous, and how the work was verified. Open work
 stays in `PLAN.md`. Ongoing conventions live in [`AGENTS.md`](../AGENTS.md).
 
+## W3: v0.3 wire-up and integration (2026-11-01)
+
+**Built**
+- Added mock-runtime IPC coverage for all 17 v0.3 commands using the command names and camelCase
+  argument payloads from `src/lib/api.ts`. The existing habit and calendar IPC coverage remains.
+- The IPC test app now opens a unique temporary on-disk SQLite database and manages both `Db` and
+  `DbPath`. The new tests check journal/theme/quote result fields, CRUD/list behavior, quote-import
+  counts and daily selection, plus `DataInfo`, a reopenable SQLite snapshot, and the JSON export's
+  shape and included data. Temporary databases and both export targets are removed with the test.
+- Removed all `TODO(T7|T9|T10|T15)` dead-code allowances now that the implementations are used.
+
+**Decisions and integration fixes**
+- Used a temporary file-backed DB for these IPC tests rather than the existing in-memory fixture:
+  data commands depend on the managed live database path, and both exports must exercise real files.
+- Kept a narrowly scoped `dead_code` allowance on the shared `dates::parse_time` helper. Journal,
+  themes, quotes, and export do not use local wall-clock time; the helper remains available for the
+  upcoming time-bearing modules. The broad module-level `TODO(T7)` allowance is removed.
+- Left shared frontend contracts and feature implementations unchanged; API argument names and
+  response fields match the Rust handlers. README already documents database backup and manual restore.
+
+**Verified**
+- In `src-tauri/`: focused IPC tests passed (3 tests); full `cargo test` passed (94 tests);
+  `cargo clippy --all-targets -- -D warnings` and `cargo fmt --check` passed.
+- Frontend: `npm run typecheck`, `npm run lint`, `npm test` (53 tests), `npx prettier --check .`,
+  and `npm run build` passed. Vite emits its existing >500 kB chunk-size advisory; the build succeeds.
+- `npm install` completed. npm reported 17 dependency audit findings (2 low, 15 moderate); no
+  dependency changes were made to address them.
+- **Not verified:** real-window interactions, screenshots, the macOS native save dialogs, or
+  persistence across an actual app restart. These remain unchecked in the v0.3 QA list in `PLAN.md`.
+
+### T7: Journal (2026-11-01)
+
+**Built and decisions**
+- Added one plain-text entry per local date, with raw body preservation, a 100,000-character cap,
+  whitespace-only deletion, preview/word-count summaries, case-insensitive literal substring search,
+  and newest-first paging.
+- `JournalEditor` serializes saves, debounces typing by one second, flushes on blur, and flushes the
+  pending old-date text before loading a new date. `/journal` supports search, paging, date selection,
+  editing, delete confirmation, and the `?date=` link parameter.
+- Kept the spec's policy that an empty save deletes the row; no extra persisted empty-draft state was
+  introduced. Today's editor is part of the dashboard and the route can edit historical dates.
+
+**Verified:** repository/logic/command tests and frontend editor/route tests passed in the W3 full
+suite. Real-window autosave, rollover, screenshots, and restart persistence remain human QA.
+
+### T9: Annual theme (2026-11-01)
+
+**Built and decisions**
+- Added one upserted theme per year with trimmed title, optional description (blank becomes `NULL`),
+  preserved `created_at` on update, newest-year-first listing, and `NotFound` for deleting a missing
+  theme.
+- The Today banner uses the frontend's `today`, displays the first description line, and computes
+  leap-aware day-of-year progress in a local helper. The same create/edit dialog serves Today and
+  `/themes`; future-year planning and historical themes remain supported.
+
+**Verified:** theme repository/rule tests, banner leap/non-leap tests, and dialog/page tests passed in
+the W3 full suite. Real-window dialog and banner review remain human QA.
+
+### T10: Quotes (2026-11-01)
+
+**Built and decisions**
+- Added local quote CRUD and an empty-safe daily selector based on days since the Unix epoch and
+  ascending quote IDs, so the choice is deterministic for a fixed date and collection.
+- Bulk import parses nonblank physical lines, splits at the last supported attribution delimiter,
+  strips balanced straight/curly wrapping quotes, validates the batch before inserting, and skips
+  case-insensitive trimmed text/author duplicates in one transaction. No network or bundled quote
+  source was added.
+- The UI includes a daily widget, quote list/filter/edit/delete, and separate add and paste dialogs.
+
+**Verified:** selection/parser/repository tests and widget/import UI tests passed in the W3 full
+suite. Paste-dialog mouse QA and screenshots remain open.
+
+### T15: Data export and backup (2026-11-01)
+
+**Built and decisions**
+- Added `DbPath` as managed state and `get_data_info`, SQLite snapshot, and generic JSON export
+  commands. Exports reject relative paths, missing parents, and the live DB/WAL/SHM; use a `.partial`
+  sibling followed by an atomic rename; and report the written path and byte size.
+- SQLite snapshots use `VACUUM INTO`. JSON enumerates all non-internal tables in one read
+  transaction, preserves SQLite value types (BLOBs as lowercase hex), and includes format/schema
+  metadata. The frontend opens a native save dialog before invoking the synchronous export command.
+- Restore remains manual: quit the app and replace the database file, as documented in `README.md`.
+
+**Verified:** path validation, database info, atomic snapshot and generic JSON tests passed; W3 IPC
+checks additionally reopened the snapshot and parsed the JSON export with journal/theme/quote rows.
+The actual macOS save dialogs and SQLite restore flow were not verified and remain human QA.
+
+---
+
 ## S3: v0.3 scaffold (2026-11-01)
 
 **Built**
