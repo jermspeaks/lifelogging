@@ -110,7 +110,9 @@ pub struct GoalSummary {
     pub goal: Goal,
     pub current: f64,
     pub today_amount: f64,
+    #[ts(type = "number | null")]
     pub percent: Option<i64>,
+    #[ts(type = "number | null")]
     pub days_left: Option<i64>,
 }
 
