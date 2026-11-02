@@ -1,7 +1,12 @@
 // Re-exports of the ts-rs generated bindings (src/lib/bindings/ is generated: `npm run bindings`).
 export type { Calendar } from "./bindings/Calendar";
 export type { CalendarEvent } from "./bindings/CalendarEvent";
+export type { DataInfo } from "./bindings/DataInfo";
+export type { ExportResult } from "./bindings/ExportResult";
 export type { ImportCalendarResult } from "./bindings/ImportCalendarResult";
+export type { ImportQuotesResult } from "./bindings/ImportQuotesResult";
+export type { JournalEntry } from "./bindings/JournalEntry";
+export type { JournalSummary } from "./bindings/JournalSummary";
 export type { DayEntry } from "./bindings/DayEntry";
 export type { DayStatus } from "./bindings/DayStatus";
 export type { ErrorKind } from "./bindings/ErrorKind";
@@ -10,4 +15,9 @@ export type { Habit } from "./bindings/Habit";
 export type { HabitColor } from "./bindings/HabitColor";
 export type { HabitPatch } from "./bindings/HabitPatch";
 export type { NewHabit } from "./bindings/NewHabit";
+export type { NewQuote } from "./bindings/NewQuote";
 export type { TodayHabit } from "./bindings/TodayHabit";
+export type { AnnualTheme } from "./bindings/AnnualTheme";
+export type { ThemeInput } from "./bindings/ThemeInput";
+export type { Quote } from "./bindings/Quote";
+export type { QuotePatch } from "./bindings/QuotePatch";

@@ -1,6 +1,6 @@
 //! SQLite connection setup and migrations (SPEC §5).
 
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 
 use rusqlite::Connection;
@@ -10,6 +10,10 @@ use crate::error::{AppError, AppResult};
 
 /// Managed Tauri state: the single app-wide connection.
 pub struct Db(pub Mutex<Connection>);
+
+/// Managed path to the live database, used by export commands.
+#[allow(dead_code)] // TODO(T15): consumed by the export commands.
+pub struct DbPath(pub PathBuf);
 
 /// Migration 001, exactly as in SPEC §5.
 const MIGRATION_001: &str = "
@@ -60,7 +64,43 @@ CREATE TABLE events (
 CREATE INDEX idx_events_start_date ON events(start_date);
 ";
 
-const MIGRATION_ARRAY: &[M<'static>] = &[M::up(MIGRATION_001), M::up(MIGRATION_002)];
+const MIGRATION_003: &str = "
+CREATE TABLE journal_entries (
+  date       TEXT PRIMARY KEY,
+  body       TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+";
+
+const MIGRATION_004: &str = "
+CREATE TABLE annual_themes (
+  year        INTEGER PRIMARY KEY CHECK (year BETWEEN 1900 AND 9999),
+  title       TEXT NOT NULL,
+  description TEXT,
+  created_at  TEXT NOT NULL,
+  updated_at  TEXT NOT NULL
+);
+";
+
+const MIGRATION_005: &str = "
+CREATE TABLE quotes (
+  id         INTEGER PRIMARY KEY,
+  text       TEXT NOT NULL,
+  author     TEXT,
+  source     TEXT,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+";
+
+const MIGRATION_ARRAY: &[M<'static>] = &[
+    M::up(MIGRATION_001),
+    M::up(MIGRATION_002),
+    M::up(MIGRATION_003),
+    M::up(MIGRATION_004),
+    M::up(MIGRATION_005),
+];
 
 /// Ordered list of embedded migrations (SPEC §5).
 pub fn migrations() -> Migrations<'static> {
@@ -113,12 +153,12 @@ mod tests {
         assert_eq!(fk, 1);
         let tables: i64 = conn
             .query_row(
-                "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name IN ('habits', 'habit_checks')",
+                "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name IN ('habits', 'habit_checks', 'calendars', 'events', 'journal_entries', 'annual_themes', 'quotes')",
                 [],
                 |r| r.get(0),
             )
             .unwrap();
-        assert_eq!(tables, 2);
+        assert_eq!(tables, 7);
     }
 
     #[test]

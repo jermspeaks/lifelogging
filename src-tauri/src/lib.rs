@@ -1,7 +1,13 @@
 mod calendar;
+mod data;
+#[allow(dead_code)] // TODO(T7): consumed by date-sensitive module implementations.
+mod dates;
 mod db;
 mod error;
 mod habits;
+mod journal;
+mod quotes;
+mod themes;
 
 use std::path::PathBuf;
 use std::sync::Mutex;
@@ -9,7 +15,11 @@ use std::sync::Mutex;
 use tauri::{Builder, Manager, Runtime};
 
 use calendar::commands as calendar_commands;
+use data::commands as data_commands;
 use habits::commands;
+use journal::commands as journal_commands;
+use quotes::commands as quote_commands;
+use themes::commands as theme_commands;
 
 /// Overrides the database location (dev/testing). Default: `<app_data_dir>/lifelogging.db`.
 const DB_PATH_ENV: &str = "LIFELOGGING_DB_PATH";
@@ -43,17 +53,36 @@ fn with_commands<R: Runtime>(builder: Builder<R>) -> Builder<R> {
         calendar_commands::import_calendar,
         calendar_commands::delete_calendar,
         calendar_commands::get_upcoming_events,
+        journal_commands::get_journal_entry,
+        journal_commands::save_journal_entry,
+        journal_commands::delete_journal_entry,
+        journal_commands::list_journal_entries,
+        theme_commands::list_themes,
+        theme_commands::get_theme,
+        theme_commands::set_theme,
+        theme_commands::delete_theme,
+        quote_commands::list_quotes,
+        quote_commands::create_quote,
+        quote_commands::update_quote,
+        quote_commands::delete_quote,
+        quote_commands::import_quotes,
+        quote_commands::get_daily_quote,
+        data_commands::get_data_info,
+        data_commands::export_database,
+        data_commands::export_json,
     ])
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     with_commands(tauri::Builder::default())
+        .plugin(tauri_plugin_dialog::init())
         .setup(|app| {
             let path = db_path(app)?;
             let conn = db::open(&path)?;
             println!("lifelogging: database at {}", path.display());
             app.manage(db::Db(Mutex::new(conn)));
+            app.manage(db::DbPath(path));
             Ok(())
         })
         .run(context())

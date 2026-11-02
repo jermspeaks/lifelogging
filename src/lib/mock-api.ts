@@ -1,6 +1,10 @@
 // In-memory stand-in for the Rust backend, for UI work in a plain browser (VITE_MOCK_API=1).
 // Mirrors SPEC §6 closely enough to exercise the UI; the Rust implementation is the source of truth.
 import type { Api } from "./api";
+import { createDataMock } from "./mock/data";
+import { createJournalMock } from "./mock/journal";
+import { createQuotesMock } from "./mock/quotes";
+import { createThemesMock } from "./mock/themes";
 import { addDays, fromISODate, todayLocal } from "./date";
 import type {
   Calendar,
@@ -139,6 +143,10 @@ export function createMockApi(): Api {
     );
 
   return {
+    ...createJournalMock(),
+    ...createThemesMock(),
+    ...createQuotesMock(),
+    ...createDataMock(),
     listHabits: (includeArchived) =>
       delay(() =>
         [...habits.values()]

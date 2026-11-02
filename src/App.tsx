@@ -5,6 +5,10 @@ import { AppLayout } from "@/components/AppLayout";
 import { Toaster } from "@/components/ui/sonner";
 import Calendar from "@/routes/Calendar";
 import Habits from "@/routes/Habits";
+import Journal from "@/routes/Journal";
+import Quotes from "@/routes/Quotes";
+import Settings from "@/routes/Settings";
+import Themes from "@/routes/Themes";
 import Today from "@/routes/Today";
 
 const queryClient = new QueryClient({
@@ -22,6 +26,10 @@ const router = createHashRouter([
       { index: true, element: <Today /> },
       { path: "habits", element: <Habits /> },
       { path: "calendar", element: <Calendar /> },
+      { path: "journal", element: <Journal /> },
+      { path: "themes", element: <Themes /> },
+      { path: "quotes", element: <Quotes /> },
+      { path: "settings", element: <Settings /> },
     ],
   },
 ]);

@@ -10,7 +10,7 @@ are in [`AGENTS.md`](../AGENTS.md). The product spec is [`SPEC.md`](./SPEC.md).
 |---|---|
 | **v0.1: Habits** (shell + habit CRUD + Today checklist) | ✅ Built and committed (T0–T5, 2026-10-31). Manual QA is partly complete; remaining checks are below. |
 | v0.2: Calendar and event lookahead | ✅ Implemented; real-window mouse QA remains open below. |
-| v0.3: Reflect (Journal, Annual theme, Quotes, Export) | 📝 Specced (SPEC §12–§16); not started. |
+| v0.3: Reflect (Journal, Annual theme, Quotes, Export) | S3 scaffold implemented; T7, T9, T10, and T15 are ready after the scaffold is committed. |
 | v0.4: Plan (Reminders, Notes review, Goals) | 📝 Specced (SPEC §17–§19); not started. |
 | v0.5: Look back (Recap, Puzzle) | 📝 Specced (SPEC §20–§21); not started. |
 
@@ -88,41 +88,6 @@ The files that every module touches (`db/mod.rs`, `lib.rs`, `api.ts`, `queries.t
 Parallel tasks then fill in the module's `repo.rs`, `logic.rs`, `commands.rs`, mock file, widgets,
 and route, with tests. The wire-up task adds an IPC test per command, runs the real app against a
 seeded database, writes the human QA checklist, and closes the milestone in `COMPLETED.md`.
-
----
-
-### S3: v0.3 scaffold (serial, blocking)
-
-**Goal:** freeze the contracts for SPEC §12–§16 so T7, T9, T10, and T15 can run in parallel.
-
-**Owns:** everything (it's the only agent running).
-
-**Implement**
-- `src-tauri/src/dates.rs` as described in SPEC §12, with tests: `parse_date`, `parse_time`, and
-  `now_rfc3339`.
-- Migrations 003 `journal_entries`, 004 `annual_themes`, and 005 `quotes`, exactly as in the spec.
-  Extend the `db` tests to assert that the new tables exist.
-- Modules `journal`, `themes`, `quotes`, and `data` (export). Each gets `mod.rs`, a final
-  `model.rs`, and stubs for `repo.rs`, `logic.rs`, and `commands.rs`. `data` needs no `logic.rs`
-  unless it's useful. Register all 17 commands.
-- `db::DbPath(PathBuf)`, managed in `setup` (SPEC §16 rule 1).
-- Add `tauri-plugin-dialog` (Rust crate and `@tauri-apps/plugin-dialog`), initialize it in
-  `run()`, and grant `dialog:allow-save` in `capabilities/default.json`. Add a stub
-  `src/lib/dialog.ts` with the final `chooseSavePath` signature, already working in both Tauri and
-  mock mode.
-- `npm run bindings`, `types.ts`, `api.ts`, and `queries.ts`. Query keys: `["journal", …]`,
-  `["themes", …]`, `["quotes", …]`, and `["data-info"]`.
-- Create `src/lib/mock/` with `journal.ts`, `themes.ts`, `quotes.ts`, and `data.ts` stubs, and
-  spread them into `createMockApi()`.
-- Routes `/journal`, `/themes`, `/quotes`, and `/settings`, rendered from stub components in
-  `src/routes/{Journal,Themes,Quotes,Settings}.tsx`. Nav entries follow SPEC §12, with Settings
-  pinned to the bottom of the sidebar.
-- `Today.tsx`: put the `ThemeBanner` slot above the grid. Add `JournalWidget` (with
-  `lg:col-span-2`) and `QuoteWidget` to the grid in the order from SPEC §12. Each comes from a stub
-  component in the owned widget folders.
-
-**Verify:** the full Definition of Done in `AGENTS.md`. `npm run dev:mock` shows the new nav
-entries and placeholder pages, and `npm run tauri dev` starts with migrations 003–005 applied.
 
 ---
 

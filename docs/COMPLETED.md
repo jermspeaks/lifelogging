@@ -4,6 +4,28 @@ Finished tasks from [`PLAN.md`](./PLAN.md), newest first. Each entry records wha
 decisions made where [`SPEC.md`](./SPEC.md) was ambiguous, and how the work was verified. Open work
 stays in `PLAN.md`. Ongoing conventions live in [`AGENTS.md`](../AGENTS.md).
 
+## S3: v0.3 scaffold (2026-11-01)
+
+**Built**
+- Added shared strict `YYYY-MM-DD` / `HH:MM` parsers and RFC 3339 UTC millisecond timestamps.
+- Added migrations 003–005 for journal entries, annual themes, and quotes, with migration tests covering all seven application tables.
+- Added final Rust models and generated TypeScript bindings for Journal, Themes, Quotes, and Data; registered all 17 commands with explicit not-implemented stubs.
+- Added the managed database path, initialized `tauri-plugin-dialog`, granted only `dialog:allow-save`, and added `chooseSavePath` for Tauri and mock mode.
+- Wired typed API methods, query keys/hooks, and mock API slices. Added placeholder Journal, Themes, Quotes, and Settings routes, sidebar navigation, and Today slots for the theme banner, journal, and quote.
+
+**Decisions**
+- Date and time parsing require exact ASCII digit-and-separator formats before chrono parsing.
+- Kept module implementation bodies as stubs for T7, T9, T10, and T15; these parallel tasks must wait until the scaffold is committed, per the plan.
+- No product decisions in SPEC §12 were changed.
+
+**Verified**
+- `npm run bindings` generated all new types.
+- In `src-tauri/`: `cargo test` (62 passed), `cargo clippy --all-targets -- -D warnings`, and `cargo fmt --check` passed.
+- `npm run typecheck`, `npm run lint`, `npm test` (25 passed), `npx prettier --check .`, and `npm run build` passed. Vite reports its existing >500 kB chunk advisory; the build succeeds.
+- **Not verified:** visual mock-browser click-through; no browser capture was run in this session. Automated build and component tests pass.
+
+---
+
 ## T6: Calendar and event lookahead (2026-10-31)
 
 **Built**
