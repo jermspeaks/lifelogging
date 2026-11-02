@@ -3,6 +3,9 @@
 import type { Api } from "./api";
 import { createDataMock } from "./mock/data";
 import { createJournalMock } from "./mock/journal";
+import { createGoalsMock } from "./mock/goals";
+import { createNotesMock } from "./mock/notes";
+import { createRemindersMock } from "./mock/reminders";
 import { createQuotesMock } from "./mock/quotes";
 import { createThemesMock } from "./mock/themes";
 import { addDays, fromISODate, todayLocal } from "./date";
@@ -144,6 +147,9 @@ export function createMockApi(): Api {
 
   return {
     ...createJournalMock(),
+    ...createRemindersMock(),
+    ...createGoalsMock(),
+    ...createNotesMock(),
     ...createThemesMock(),
     ...createQuotesMock(),
     ...createDataMock(),

@@ -3,9 +3,12 @@ mod data;
 mod dates;
 mod db;
 mod error;
+mod goals;
 mod habits;
 mod journal;
+mod notes;
 mod quotes;
+mod reminders;
 mod themes;
 
 use std::path::PathBuf;
@@ -15,9 +18,12 @@ use tauri::{Builder, Manager, Runtime};
 
 use calendar::commands as calendar_commands;
 use data::commands as data_commands;
+use goals::commands as goal_commands;
 use habits::commands;
 use journal::commands as journal_commands;
+use notes::commands as note_commands;
 use quotes::commands as quote_commands;
+use reminders::commands as reminder_commands;
 use themes::commands as theme_commands;
 
 /// Overrides the database location (dev/testing). Default: `<app_data_dir>/lifelogging.db`.
@@ -69,6 +75,26 @@ fn with_commands<R: Runtime>(builder: Builder<R>) -> Builder<R> {
         data_commands::get_data_info,
         data_commands::export_database,
         data_commands::export_json,
+        reminder_commands::list_reminders,
+        reminder_commands::get_due_reminders,
+        reminder_commands::create_reminder,
+        reminder_commands::update_reminder,
+        reminder_commands::set_reminder_done,
+        reminder_commands::delete_reminder,
+        note_commands::list_notes,
+        note_commands::create_note,
+        note_commands::update_note,
+        note_commands::review_note,
+        note_commands::set_note_archived,
+        note_commands::delete_note,
+        note_commands::get_review_queue,
+        goal_commands::list_goals,
+        goal_commands::create_goal,
+        goal_commands::update_goal,
+        goal_commands::set_goal_status,
+        goal_commands::delete_goal,
+        goal_commands::reorder_goals,
+        goal_commands::log_goal_progress,
     ])
 }
 
@@ -76,6 +102,7 @@ fn with_commands<R: Runtime>(builder: Builder<R>) -> Builder<R> {
 pub fn run() {
     with_commands(tauri::Builder::default())
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_opener::init())
         .setup(|app| {
             let path = db_path(app)?;
             let conn = db::open(&path)?;
@@ -422,7 +449,7 @@ mod ipc_tests {
         let info = invoke(&w, "get_data_info", json!({})).unwrap();
         assert_eq!(info["dbPath"], w.db_path.to_string_lossy().as_ref());
         assert!(info["sizeBytes"].as_i64().is_some_and(|bytes| bytes > 0));
-        assert_eq!(info["schemaVersion"], 5);
+        assert_eq!(info["schemaVersion"], 8);
 
         let database_export_path = w._temp_dir.0.join("snapshot.db");
         let database_export = invoke(
@@ -476,7 +503,7 @@ mod ipc_tests {
             serde_json::from_slice(&fs::read(&json_export_path).unwrap()).unwrap();
         assert_eq!(exported["format"], "lifelogging-export");
         assert_eq!(exported["formatVersion"], 1);
-        assert_eq!(exported["schemaVersion"], 5);
+        assert_eq!(exported["schemaVersion"], 8);
         assert!(exported["exportedAt"].as_str().is_some());
         assert_eq!(
             exported["tables"]["journal_entries"]
