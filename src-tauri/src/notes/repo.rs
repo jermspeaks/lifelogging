@@ -29,6 +29,50 @@ fn clean_optional(value: Option<&str>) -> Option<String> {
         .map(str::to_owned)
 }
 
+fn is_valid_http_url(url: &str) -> bool {
+    if url.chars().any(char::is_whitespace) {
+        return false;
+    }
+    let Some(rest) = url
+        .strip_prefix("https://")
+        .or_else(|| url.strip_prefix("http://"))
+    else {
+        return false;
+    };
+    let authority = rest.split(['/', '?', '#']).next().unwrap_or_default();
+    let host_port = authority
+        .rsplit_once('@')
+        .map_or(authority, |(_, host)| host);
+    if host_port.is_empty() {
+        return false;
+    }
+
+    if let Some(bracketed) = host_port.strip_prefix('[') {
+        let Some((address, suffix)) = bracketed.split_once(']') else {
+            return false;
+        };
+        if address.parse::<std::net::Ipv6Addr>().is_err() {
+            return false;
+        }
+        return match suffix.strip_prefix(':') {
+            None => suffix.is_empty(),
+            Some("") => true,
+            Some(port) => port.parse::<u16>().is_ok(),
+        };
+    }
+
+    let (host, port) = match host_port.rsplit_once(':') {
+        Some((host, port)) if host_port.matches(':').count() == 1 => (host, Some(port)),
+        Some(_) => return false,
+        None => (host_port, None),
+    };
+    !host.is_empty()
+        && !host
+            .chars()
+            .any(|character| matches!(character, '[' | ']' | '\\' | '@'))
+        && port.is_none_or(|port| port.is_empty() || port.parse::<u16>().is_ok())
+}
+
 fn validate(title: &str, body: Option<&str>, url: Option<&str>) -> AppResult<()> {
     let title_len = title.chars().count();
     if title_len == 0 {
@@ -50,11 +94,7 @@ fn validate(title: &str, body: Option<&str>, url: Option<&str>) -> AppResult<()>
                 "URL must be at most {URL_MAX} characters."
             )));
         }
-        let authority = url
-            .strip_prefix("https://")
-            .or_else(|| url.strip_prefix("http://"));
-        let host = authority.map(|rest| rest.split(['/', '?', '#']).next().unwrap_or_default());
-        if url.chars().any(char::is_whitespace) || !host.is_some_and(|host| !host.is_empty()) {
+        if !is_valid_http_url(url) {
             return Err(AppError::Validation(
                 "URL must be an absolute http or https URL with a host.".into(),
             ));
@@ -301,6 +341,8 @@ mod tests {
             "https:///path",
             "http://?q=x",
             "https://has space.test",
+            "https://example.test:bad",
+            "https://[not-ipv6]/path",
         ] {
             assert!(
                 matches!(

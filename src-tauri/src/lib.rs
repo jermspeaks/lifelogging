@@ -555,6 +555,264 @@ mod ipc_tests {
     }
 
     #[test]
+    fn v04_commands_round_trip_over_ipc() {
+        let w = app();
+        let today = chrono::Local::now()
+            .date_naive()
+            .format("%Y-%m-%d")
+            .to_string();
+
+        let reminder = invoke(
+            &w,
+            "create_reminder",
+            json!({
+                "input": {
+                    "title": "Call the dentist",
+                    "notes": "Ask about the appointment",
+                    "dueDate": today,
+                    "dueTime": "09:30"
+                }
+            }),
+        )
+        .unwrap();
+        let reminder_id = reminder["id"].clone();
+        assert_eq!(reminder["title"], "Call the dentist");
+        assert_eq!(
+            invoke(
+                &w,
+                "list_reminders",
+                json!({ "today": today, "includeCompleted": false })
+            )
+            .unwrap()
+            .as_array()
+            .unwrap()
+            .len(),
+            1
+        );
+        assert_eq!(
+            invoke(&w, "get_due_reminders", json!({ "today": today })).unwrap()[0]["id"],
+            reminder_id
+        );
+        let reminder = invoke(
+            &w,
+            "update_reminder",
+            json!({ "id": reminder_id, "patch": { "dueTime": "" } }),
+        )
+        .unwrap();
+        assert!(reminder["dueTime"].is_null());
+        assert_eq!(
+            invoke(
+                &w,
+                "set_reminder_done",
+                json!({ "id": reminder_id, "today": today, "done": true })
+            )
+            .unwrap()["completedOn"],
+            today
+        );
+        assert_eq!(
+            invoke(
+                &w,
+                "list_reminders",
+                json!({ "today": today, "includeCompleted": true })
+            )
+            .unwrap()
+            .as_array()
+            .unwrap()
+            .len(),
+            1
+        );
+        assert!(
+            invoke(
+                &w,
+                "set_reminder_done",
+                json!({ "id": reminder_id, "today": today, "done": false })
+            )
+            .unwrap()["completedOn"]
+                .is_null()
+        );
+        assert_eq!(
+            invoke(&w, "delete_reminder", json!({ "id": reminder_id })).unwrap(),
+            Value::Null
+        );
+
+        let note = invoke(
+            &w,
+            "create_note",
+            json!({
+                "input": {
+                    "title": "Read later",
+                    "body": "A useful page",
+                    "url": "https://example.test/article"
+                },
+                "today": today
+            }),
+        )
+        .unwrap();
+        let note_id = note["id"].clone();
+        assert_eq!(note["reviewStage"], 0);
+        assert_eq!(
+            invoke(
+                &w,
+                "list_notes",
+                json!({ "query": "useful", "includeArchived": false })
+            )
+            .unwrap()[0]["id"],
+            note_id
+        );
+        assert!(
+            invoke(
+                &w,
+                "get_review_queue",
+                json!({ "today": today, "limit": 5 })
+            )
+            .unwrap()["due"]
+                .as_array()
+                .unwrap()
+                .is_empty()
+        );
+        assert_eq!(
+            invoke(
+                &w,
+                "review_note",
+                json!({ "id": note_id, "today": today, "action": "keep" })
+            )
+            .unwrap()["reviewStage"],
+            1
+        );
+        let note = invoke(
+            &w,
+            "update_note",
+            json!({ "id": note_id, "patch": { "title": "A page to revisit" } }),
+        )
+        .unwrap();
+        assert_eq!(note["title"], "A page to revisit");
+        assert!(
+            invoke(
+                &w,
+                "set_note_archived",
+                json!({ "id": note_id, "archived": true, "today": today })
+            )
+            .unwrap()["nextReviewDate"]
+                .is_null()
+        );
+        assert!(
+            invoke(
+                &w,
+                "set_note_archived",
+                json!({ "id": note_id, "archived": false, "today": today })
+            )
+            .unwrap()["nextReviewDate"]
+                .is_string()
+        );
+        assert_eq!(
+            invoke(&w, "delete_note", json!({ "id": note_id })).unwrap(),
+            Value::Null
+        );
+
+        let numeric = invoke(
+            &w,
+            "create_goal",
+            json!({
+                "input": {
+                    "title": "Read ten books",
+                    "targetValue": 10,
+                    "unit": "books",
+                    "dueDate": today
+                }
+            }),
+        )
+        .unwrap();
+        let milestone = invoke(
+            &w,
+            "create_goal",
+            json!({ "input": { "title": "Run a half marathon" } }),
+        )
+        .unwrap();
+        let numeric_id = numeric["id"].clone();
+        let milestone_id = milestone["id"].clone();
+        assert_eq!(
+            invoke(
+                &w,
+                "log_goal_progress",
+                json!({ "goalId": numeric_id, "date": today, "today": today, "amount": 4 })
+            )
+            .unwrap()["todayAmount"],
+            4.0
+        );
+        let goals = invoke(
+            &w,
+            "list_goals",
+            json!({ "today": today, "includeClosed": false }),
+        )
+        .unwrap();
+        assert_eq!(goals[0]["percent"], 40);
+        assert_eq!(goals[0]["daysLeft"], 0);
+        let updated_goal = invoke(
+            &w,
+            "update_goal",
+            json!({ "id": numeric_id, "patch": { "description": "Make steady progress" } }),
+        )
+        .unwrap();
+        assert_eq!(updated_goal["description"], "Make steady progress");
+        assert_eq!(
+            invoke(
+                &w,
+                "set_goal_status",
+                json!({ "id": milestone_id, "status": "completed", "today": today })
+            )
+            .unwrap()["closedOn"],
+            today
+        );
+        assert_eq!(
+            invoke(
+                &w,
+                "list_goals",
+                json!({ "today": today, "includeClosed": true })
+            )
+            .unwrap()
+            .as_array()
+            .unwrap()
+            .len(),
+            2
+        );
+        assert!(
+            invoke(
+                &w,
+                "set_goal_status",
+                json!({ "id": milestone_id, "status": "active", "today": today })
+            )
+            .unwrap()["closedOn"]
+                .is_null()
+        );
+        assert_eq!(
+            invoke(
+                &w,
+                "reorder_goals",
+                json!({ "ids": [milestone_id, numeric_id] })
+            )
+            .unwrap(),
+            Value::Null
+        );
+        assert_eq!(
+            invoke(
+                &w,
+                "list_goals",
+                json!({ "today": today, "includeClosed": false })
+            )
+            .unwrap()[0]["goal"]["id"],
+            milestone_id
+        );
+        assert_eq!(
+            invoke(&w, "delete_goal", json!({ "id": milestone_id })).unwrap(),
+            Value::Null
+        );
+        assert_eq!(
+            invoke(&w, "delete_goal", json!({ "id": numeric_id })).unwrap(),
+            Value::Null
+        );
+    }
+
+    #[test]
     fn validation_errors_reach_the_webview_as_payloads() {
         let w = app();
         let err = invoke(&w, "create_habit", json!({ "input": { "name": "   " } })).unwrap_err();

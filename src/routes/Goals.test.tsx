@@ -37,7 +37,7 @@ const goals: GoalSummary[] = [
     },
     current: 5,
     todayAmount: 1,
-    percent: 21n,
+    percent: 21,
     daysLeft: null,
   },
   {

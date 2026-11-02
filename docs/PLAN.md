@@ -11,7 +11,7 @@ are in [`AGENTS.md`](../AGENTS.md). The product spec is [`SPEC.md`](./SPEC.md).
 | **v0.1: Habits** (shell + habit CRUD + Today checklist) | ✅ Built and committed (T0–T5, 2026-10-31). Manual QA is partly complete; remaining checks are below. |
 | v0.2: Calendar and event lookahead | ✅ Implemented; real-window mouse QA remains open below. |
 | v0.3: Reflect (Journal, Annual theme, Quotes, Export) | ✅ Integrated (S3, T7, T9, T10, T15, W3); real-window QA and screenshots remain open below. |
-| v0.4: Plan (Reminders, Notes review, Goals) | S4 scaffold implemented; T12, T11, and T14 are ready to start. |
+| v0.4: Plan (Reminders, Notes review, Goals) | ✅ Integrated (S4, T11, T12, T14, W4); real-window QA remains open below. |
 | v0.5: Look back (Recap, Puzzle) | 📝 Specced (SPEC §20–§21); not started. |
 
 ## Open items
@@ -70,15 +70,31 @@ real-window access, screenshots, or native save-dialog verification; every item 
 - [ ] Capture Today (theme banner, journal, quote) and the Journal, Themes, Quotes, and Settings
       pages for a visual review.
 
-## Roadmap: v0.4–v0.5
+### 4. v0.4 real-window QA (needs a human)
 
-The remaining Daily View ideas in [`ideas.md`](../ideas.md) are specified in `SPEC.md` §12–§21.
-**Read §12 "Product decisions to confirm" before starting a milestone.** Once a milestone's scaffold
-is committed, its contract is frozen.
+Run `npm run tauri dev`, preferably with a scratch database. Automated Rust/IPC and mock UI tests
+pass, but this session did not verify the flows in the real macOS webview.
+
+- [ ] Confirm Today shows overdue, today, and completed reminders; toggle completion and verify the
+      optimistic state, snooze-to-tomorrow (time cleared), quick add, edit, and confirmed delete.
+- [ ] On `/reminders`, show completed items and verify the date groups and the 30-day completed window.
+- [ ] Create a note from a title and a pasted URL; confirm the invalid-URL error is visible. Open a
+      saved link and confirm it opens in the system browser.
+- [ ] On Today, exercise Keep, Snooze, Done, and Undo; confirm the next due note appears. On `/notes`,
+      verify search, edit, archive/unarchive, and confirmed delete.
+- [ ] Create a numeric and a milestone goal. Log, replace, and clear today's numeric progress;
+      verify target/due labels, mark complete, reorder, abandon, reopen, and delete.
+- [ ] Restart the app and confirm reminders, notes/review state, goals, and progress persist.
+- [ ] Capture Today and the Reminders, Notes, and Goals pages for visual review.
+
+## Roadmap: v0.5
+
+The remaining Daily View ideas in [`ideas.md`](../ideas.md) are specified in `SPEC.md` §12, §20, and
+§21. **Read §12 "Product decisions to confirm" before starting the milestone.** Once the scaffold is
+committed, its contract is frozen.
 
 | Milestone | Scaffold (serial) | Parallel tasks | Wire-up (serial) | Migrations |
 |---|---|---|---|---|
-| **v0.4: Plan** | S4 | T12 Reminders · T11 Notes review · T14 Goals | W4 | 006 reminders, 007 notes, 008 goals |
 | **v0.5: Look back** | S5 | T8 Recap · T13 Puzzle | W5 | 009 puzzles |
 
 Run the milestones in order. Recap (T8) reads data from the v0.3 and v0.4 modules, so it comes last.
@@ -110,62 +126,6 @@ seeded database, writes the human QA checklist, and closes the milestone in `COM
 ---
 
 
-### T12: Reminders (parallel, after S4)
-
-**Spec:** SPEC §17.
-
-**Owns:** `src-tauri/src/reminders/{repo,logic,commands}.rs`, `src/lib/mock/reminders.ts`,
-`src/widgets/reminders/**`, `src/routes/Reminders.tsx`, and tests.
-
-**Implement:** the sort and due-set predicates in `logic.rs`; CRUD, done/undone, and the 30-day
-completed window in `repo.rs`; the widget with its groups, quick add, and snooze; and the
-`/reminders` page with date grouping and the dialog. Seed the mock with overdue, today, and future
-reminders.
-
-**Tests and verify:** as in SPEC §17, plus the T7 Verify commands.
-
----
-
-### T11: Notes review (parallel, after S4)
-
-**Spec:** SPEC §18.
-
-**Owns:** `src-tauri/src/notes/{repo,logic,commands}.rs`, `src/lib/mock/notes.ts`,
-`src/widgets/notes/**`, `src/routes/Notes.tsx`, and tests.
-
-**Implement:** the interval ladder and the keep, snooze, archive, and unarchive transitions as pure
-functions in `logic.rs`. Validate URLs without a new crate: check the `http://` or `https://` prefix
-and a non-empty host with no whitespace. Build CRUD, search, and the queue, then the widget and the
-`/notes` page. Seed the mock with some notes that are due and some that aren't.
-
-**Tests and verify:** as in SPEC §18, plus the T7 Verify commands.
-
----
-
-### T14: Goals (parallel, after S4)
-
-**Spec:** SPEC §19.
-
-**Owns:** `src-tauri/src/goals/{repo,logic,commands}.rs`, `src/lib/mock/goals.ts`,
-`src/widgets/goals/**`, `src/routes/Goals.tsx`, and tests.
-
-**Implement:** `percent` and `daysLeft` in `logic.rs`; CRUD, status, reorder, and progress logging
-(set, replace, or delete) in `repo.rs`; `GoalSummary` assembly in one query plus a progress
-aggregate; the widget with inline "Today" logging; and the `/goals` page with its dialog and the
-closed section. Seed the mock with one numeric goal and one milestone goal.
-
-**Tests and verify:** as in SPEC §19, plus the T7 Verify commands.
-
----
-
-### W4: v0.4 wire-up and QA (serial, after T11, T12, and T14 are merged)
-
-Same shape as W3: IPC tests for all 20 commands, removing the TODO markers, a seeded real-app run
-with screenshots, a "v0.4 manual QA" checklist (reminder toggles and snooze, the note Keep, Snooze,
-and Done flow, an external link opening in the browser, goal logging and completion, and
-persistence across a restart), and closing the milestone in `COMPLETED.md`.
-
----
 
 ### S5: v0.5 scaffold (serial, after W4)
 

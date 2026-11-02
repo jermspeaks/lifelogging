@@ -17,6 +17,13 @@ describe("goals mock", () => {
     expect(removed.current).toBe(0);
   });
 
+  it("counts Unicode characters consistently with the Rust backend", async () => {
+    const mock = createGoalsMock();
+    const title = "🧭".repeat(61);
+    const created = await mock.createGoal({ title });
+    expect(created.title).toBe(title);
+  });
+
   it("preserves explicit null target updates and rejects milestone logging", async () => {
     const mock = createGoalsMock();
     const today = "2026-10-31";

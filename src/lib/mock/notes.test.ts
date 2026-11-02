@@ -70,6 +70,9 @@ describe("Notes mock API", () => {
     await expect(
       api.createNote({ title: "Bad", url: "https:///path" }, "2026-10-31"),
     ).rejects.toMatchObject({ kind: "Validation" });
+    await expect(
+      api.createNote({ title: "Bad", url: "https://example.test:bad" }, "2026-10-31"),
+    ).rejects.toMatchObject({ kind: "Validation" });
     await expect(api.createNote({ title: "Bad" }, "2026-2-1")).rejects.toMatchObject({
       kind: "Validation",
     });

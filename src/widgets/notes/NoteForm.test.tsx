@@ -58,4 +58,13 @@ describe("NoteForm", () => {
     expect(await screen.findByText("Title is required.")).toBeInTheDocument();
     expect(api.createNote).not.toHaveBeenCalled();
   });
+
+  it("shows an invalid pasted URL error in quick add", async () => {
+    const user = userEvent.setup();
+    wrap();
+    await user.type(screen.getByLabelText("Title or link"), "https://example.test:bad");
+    await user.click(screen.getByRole("button", { name: "Save note" }));
+    expect(await screen.findByText("Use an absolute http or https URL with a host.")).toBeVisible();
+    expect(api.createNote).not.toHaveBeenCalled();
+  });
 });

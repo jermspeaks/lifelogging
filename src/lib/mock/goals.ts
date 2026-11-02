@@ -56,15 +56,16 @@ export function createGoalsMock(): GoalsApi {
     dueDate: string | null;
   }) {
     const title = input.title.trim();
-    if (!title || title.length > 120) fail("Validation", "Title must be 1–120 characters.");
-    if (input.description && input.description.length > 1000)
+    if (!title || Array.from(title).length > 120)
+      fail("Validation", "Title must be 1–120 characters.");
+    if (input.description && Array.from(input.description).length > 1000)
       fail("Validation", "Description must be at most 1,000 characters.");
     if (
       input.targetValue !== null &&
       (!Number.isFinite(input.targetValue) || input.targetValue <= 0)
     )
       fail("Validation", "Target must be a finite number greater than 0.");
-    if (input.unit && input.unit.length > 20)
+    if (input.unit && Array.from(input.unit).length > 20)
       fail("Validation", "Unit must be at most 20 characters.");
     if (input.targetValue === null && input.unit)
       fail("Validation", "A unit can only be set for a numeric goal.");
@@ -83,13 +84,13 @@ export function createGoalsMock(): GoalsApi {
     const percent =
       goal.targetValue === null
         ? null
-        : BigInt(Math.min(100, Math.round((current / goal.targetValue) * 100)));
+        : Math.min(100, Math.round((current / goal.targetValue) * 100));
     return {
       goal: { ...goal },
       current,
       todayAmount: entries.get(today) ?? 0,
       percent,
-      daysLeft: goal.dueDate === null ? null : BigInt(dayCount(today, goal.dueDate)),
+      daysLeft: goal.dueDate === null ? null : dayCount(today, goal.dueDate),
     };
   }
 

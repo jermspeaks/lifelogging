@@ -4,6 +4,79 @@ Finished tasks from [`PLAN.md`](./PLAN.md), newest first. Each entry records wha
 decisions made where [`SPEC.md`](./SPEC.md) was ambiguous, and how the work was verified. Open work
 stays in `PLAN.md`. Ongoing conventions live in [`AGENTS.md`](../AGENTS.md).
 
+## W4: v0.4 integration and QA handoff (2026-11-02)
+
+**Built**
+- Integrated T12 Reminders, T11 Notes review, and T14 Goals into `main` after reviewing each
+  feature diff against its ownership boundary and SPEC §§17–19.
+- Added Tauri mock-runtime IPC round trips for all 20 v0.4 commands using the camelCase payloads
+  sent by `src/lib/api.ts`.
+- Fixed integration issues found in review: goal `updated_at` stays an RFC 3339 timestamp when its
+  separate `closed_on` field is set; goal summary numbers use JSON-compatible TypeScript `number`s;
+  invalid quick-add note URLs show an inline error; and failed goal-progress saves can be retried.
+- Updated mock goal text limits to count Unicode code points consistently with Rust.
+- Added the v0.4 real-window checklist to `PLAN.md`.
+
+**Decisions**
+- Kept Notes URL validation dependency-free as required by T11's plan. The UI and mock use the
+  platform URL parser; Rust validates the HTTP(S) scheme, authority, bracketed IPv6, and numeric
+  port without a new crate. This is a focused absolute-URL check, not a general-purpose URL parser.
+- `closed_on` remains the frontend-supplied local date, while goal `updated_at` records the actual
+  UTC RFC 3339 mutation timestamp.
+- Goal `percent` and `daysLeft` remain JSON numbers; mocks and tests now mirror that serialized
+  contract rather than using JavaScript `bigint`.
+
+**Verified**
+- Following each feature merge, the full Rust and frontend Definition of Done passed.
+- Final verification: `cargo test` (141 passed), `cargo clippy --all-targets -- -D warnings`, and
+  `cargo fmt --check` passed. `npm run typecheck`, `npm run lint`, Vitest (80 tests across 29 files),
+  `npx prettier --check .`, and `npm run build` passed. Vite reports the existing >500 kB chunk
+  advisory; the build succeeds. `git diff --check` passed, and no v0.4 TODO or `unimplemented!()`
+  markers remain.
+- **Not verified:** real-window v0.4 interaction, restart persistence, external-link launching, or
+  screenshots. These require human QA and remain unchecked in `PLAN.md`.
+
+### T14: Goals (2026-11-02)
+
+**Built and decisions**
+- Added milestone and numeric goals, validation, optional due dates, per-day set/replace/delete
+  progress, current/Today aggregates, capped percent, overdue day counts, ordering, status changes,
+  reopen-at-end behavior, and cascading deletion.
+- Added the Today goal widget and `/goals` management UI with numeric/milestone forms, progress entry,
+  reorder controls, closed-goal actions, and confirmation before deletion.
+- The numeric binding fix on `main` is preserved: TypeScript uses `number` for `percent` and
+  `daysLeft`, matching the JSON values serialized by Rust.
+
+**Verified:** repository, rules, mock, widget, dialog, and route tests pass in the final full suite.
+The integration IPC test also checks JSON numeric summaries. Real-window logging and persistence
+remain human QA.
+
+### T11: Notes review (2026-11-02)
+
+**Built and decisions**
+- Added the seven-step review interval ladder, Keep/Snooze/Done/Unarchive transitions, searchable
+  notes CRUD, a bounded review queue, seeded mock notes, the Today Review widget, and `/notes`.
+- Pasted URLs become the note title and URL. Invalid pasted URLs now produce a visible inline error;
+  URL handling remains dependency-free as described in W4 above.
+
+**Verified:** rule/repository/command-helper, mock, widget, and form tests pass in the final full
+suite. The integration IPC test exercises every Notes command. External link opening and persistence
+remain human QA.
+
+### T12: Reminders (2026-11-02)
+
+**Built and decisions**
+- Added dated reminders with optional time/notes, deterministic ordering and due-set rules, CRUD,
+  idempotent completion, and the inclusive 30-day completed window.
+- Added Today grouping, optimistic completion with rollback, quick add and snooze, plus `/reminders`
+  with date groups, edit/delete, and completed-item controls.
+
+**Verified:** rules/repository, mock, grouping, widget, and route behavior pass in the final full
+suite. The integration IPC test exercises all six Reminder commands. Real-window interactions and
+persistence remain human QA.
+
+---
+
 ## S4: v0.4 scaffold (2026-11-01)
 
 **Built**

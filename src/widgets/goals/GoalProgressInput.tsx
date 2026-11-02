@@ -9,16 +9,25 @@ export function GoalProgressInput({
   goalId: number;
   title: string;
   amount: number;
-  onSave: (goalId: number, amount: number) => void;
+  onSave: (goalId: number, amount: number) => Promise<void>;
 }) {
   const [value, setValue] = useState(String(amount));
   const lastSaved = useRef(amount);
+  const saving = useRef(false);
 
-  const save = () => {
+  const save = async () => {
     const parsed = Number(value);
-    if (!Number.isFinite(parsed) || parsed < 0 || parsed === lastSaved.current) return;
-    lastSaved.current = parsed;
-    onSave(goalId, parsed);
+    if (!Number.isFinite(parsed) || parsed < 0 || parsed === lastSaved.current || saving.current)
+      return;
+    saving.current = true;
+    try {
+      await onSave(goalId, parsed);
+      lastSaved.current = parsed;
+    } catch {
+      // The caller reports the error; leaving lastSaved unchanged lets the user retry.
+    } finally {
+      saving.current = false;
+    }
   };
 
   return (

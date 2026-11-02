@@ -258,8 +258,8 @@ pub fn set_status(conn: &Connection, id: i64, status: GoalStatus, today: &str) -
         )?;
     } else {
         conn.execute(
-            "UPDATE goals SET status = ?1, closed_on = ?2, updated_at = ?2 WHERE id = ?3",
-            params![status_value, today, id],
+            "UPDATE goals SET status = ?1, closed_on = ?2, updated_at = ?3 WHERE id = ?4",
+            params![status_value, today, now(), id],
         )?;
     }
     get(conn, id)
@@ -530,6 +530,7 @@ mod tests {
         log_progress(&conn, first.id, "2026-10-31", "2026-10-31", 1.0).unwrap();
         let closed = set_status(&conn, first.id, GoalStatus::Completed, "2026-10-31").unwrap();
         assert_eq!(closed.closed_on.as_deref(), Some("2026-10-31"));
+        assert!(closed.updated_at.contains('T'));
         let reopened = set_status(&conn, first.id, GoalStatus::Active, "2026-11-01").unwrap();
         assert_eq!(reopened.closed_on, None);
         let active = list(&conn, "2026-11-01", false).unwrap();

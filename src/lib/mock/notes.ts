@@ -43,13 +43,21 @@ function validate(title: string, body: string | null, url: string | null): void 
   if (body !== null && chars(body) > 5_000)
     fail("Validation", "Body must be at most 5,000 characters");
   if (url !== null) {
-    const authority = url.startsWith("https://")
-      ? url.slice(8)
-      : url.startsWith("http://")
-        ? url.slice(7)
-        : "";
-    const host = authority.split(/[/?#]/u, 1)[0];
-    if (chars(url) > 2_000 || /\s/u.test(url) || host.length === 0)
+    const authority = url.slice(url.indexOf("://") + 3).split(/[/?#]/u, 1)[0];
+    const valid = (() => {
+      try {
+        const parsed = new URL(url);
+        return (
+          authority.length > 0 &&
+          (parsed.protocol === "http:" || parsed.protocol === "https:") &&
+          Boolean(parsed.hostname) &&
+          !/\s/u.test(url)
+        );
+      } catch {
+        return false;
+      }
+    })();
+    if (chars(url) > 2_000 || !valid)
       fail("Validation", "URL must be an absolute http or https URL with a host");
   }
 }

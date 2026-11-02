@@ -23,6 +23,21 @@ function isHttpUrl(value: string): boolean {
   return /^https?:\/\//u.test(value);
 }
 
+function isValidHttpUrl(value: string): boolean {
+  if (/\s/u.test(value)) return false;
+  const authority = value.slice(value.indexOf("://") + 3).split(/[/?#]/u, 1)[0];
+  try {
+    const parsed = new URL(value);
+    return (
+      authority.length > 0 &&
+      (parsed.protocol === "http:" || parsed.protocol === "https:") &&
+      Boolean(parsed.hostname)
+    );
+  } catch {
+    return false;
+  }
+}
+
 export function NoteForm({ note, today, onDone }: NoteFormProps) {
   const [titleOrUrl, setTitleOrUrl] = useState(note?.title ?? "");
   const [url, setUrl] = useState(note?.url ?? "");
@@ -52,10 +67,7 @@ export function NoteForm({ note, today, onDone }: NoteFormProps) {
     url:
       finalUrl.length > URL_MAX
         ? `URL must be at most ${URL_MAX} characters.`
-        : finalUrl &&
-            (!isHttpUrl(finalUrl) ||
-              /\s/u.test(finalUrl) ||
-              !finalUrl.slice(finalUrl.indexOf("://") + 3).split(/[/?#]/u, 1)[0])
+        : finalUrl && !isValidHttpUrl(finalUrl)
           ? "Use an absolute http or https URL with a host."
           : "",
   };
@@ -118,13 +130,29 @@ export function NoteForm({ note, today, onDone }: NoteFormProps) {
             setServerError(null);
           }}
           placeholder={note ? "Note title" : "A thought or pasted URL"}
-          aria-invalid={(submitted && Boolean(errors.title)) || undefined}
-          aria-describedby={submitted && errors.title ? "note-title-error" : undefined}
+          aria-invalid={
+            (submitted && Boolean(errors.title || (!note && pastedUrl && errors.url))) || undefined
+          }
+          aria-describedby={
+            submitted && (errors.title || (!note && pastedUrl && errors.url))
+              ? [
+                  errors.title && "note-title-error",
+                  !note && pastedUrl && errors.url && "note-url-error",
+                ]
+                  .filter(Boolean)
+                  .join(" ")
+              : undefined
+          }
           autoFocus={Boolean(note)}
         />
         {submitted && errors.title && (
           <p id="note-title-error" className="text-sm text-destructive">
             {errors.title}
+          </p>
+        )}
+        {submitted && !note && pastedUrl && errors.url && (
+          <p id="note-url-error" className="text-sm text-destructive">
+            {errors.url}
           </p>
         )}
       </div>

@@ -32,13 +32,14 @@ export function GoalsWidget({ today }: { today: string }) {
   const setStatus = useSetGoalStatus();
   const goals = data ?? [];
 
-  const logToday = (goalId: number, value: number) =>
-    log.mutate(
-      { goalId, date: today, today, amount: value },
-      {
-        onError: (error) => toast.error(`Couldn't save goal progress: ${errorMessage(error)}`),
-      },
-    );
+  const logToday = async (goalId: number, value: number) => {
+    try {
+      await log.mutateAsync({ goalId, date: today, today, amount: value });
+    } catch (error) {
+      toast.error(`Couldn't save goal progress: ${errorMessage(error)}`);
+      throw error;
+    }
+  };
 
   const complete = (goalId: number, title: string) =>
     setStatus.mutate(
