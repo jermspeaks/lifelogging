@@ -27,7 +27,10 @@ Habits live in a single SQLite file:
 
 - **Use a different database:** `LIFELOGGING_DB_PATH=/tmp/scratch.db npm run tauri dev`. Handy for
   testing with seeded data.
-- **Back up:** quit the app, then copy `lifelogging.db`.
+- **Back up:** use Settings → Data to save a SQLite snapshot while the app is running, or quit the
+  app and copy `lifelogging.db`.
+- **Restore from a backup:** quit the app, then replace `lifelogging.db` with the saved SQLite
+  snapshot. Keep the backup in the same location and filename so the app opens it on next launch.
 - **Reset:** quit the app, then delete `lifelogging.db` and its `-wal` and `-shm` siblings. Migrations
   recreate the schema on the next launch.
 
