@@ -4,6 +4,39 @@ Finished tasks from [`PLAN.md`](./PLAN.md), newest first. Each entry records wha
 decisions made where [`SPEC.md`](./SPEC.md) was ambiguous, and how the work was verified. Open work
 stays in `PLAN.md`. Ongoing conventions live in [`AGENTS.md`](../AGENTS.md).
 
+## S4: v0.4 scaffold (2026-11-01)
+
+**Built**
+- Added migrations 006–008 for reminders, notes, goals, and per-date goal progress; the schema now
+  reports version 8.
+- Added final Rust models, TypeScript bindings, repository/logic placeholders, and 20 registered
+  command stubs for the three modules.
+- Added the opener plugin and its URL permission, `openExternal` for Tauri and mock mode, typed API
+  methods, query hooks (including optimistic reminder completion with rollback), and empty/placeholder
+  mock implementations.
+- Added the Reminders, Goals, and Notes routes/nav entries and Today widget placeholders in the
+  SPEC §12 order. Each Today widget receives the page's `today` value.
+
+**Decisions**
+- `NotePatch`/`ReviewAction` and `GoalStatus` serialize as lowercase strings, as required by the
+  IPC contract.
+- `GoalPatch.targetValue` uses `Option<Option<f64>>`: omitted means unchanged, explicit `null` means
+  a milestone goal, and a number sets the target. A custom deserializer preserves those three states;
+  the generated TypeScript contract is `targetValue?: number | null`.
+- The reminder mutation optimistically updates all reminder-list and due-list caches, restores them
+  and shows an error toast on failure, then invalidates the module query root.
+
+**Verified**
+- `src-tauri/`: `cargo test` (108 passed), `cargo clippy --all-targets -- -D warnings`, and
+  `cargo fmt --check` passed. The target-value tri-state has a dedicated serde test.
+- Frontend: typecheck, lint, Vitest (53 passed), Prettier, and production build passed. Vite retains
+  its >500 kB chunk-size advisory; the build succeeds.
+- **Not verified:** visual browser click-through of the new placeholders or real-window opener
+  behavior. These placeholders are scaffold-only; feature behavior and its QA belong to T12/T11/T14
+  and W4.
+
+---
+
 ## W3: v0.3 wire-up and integration (2026-11-01)
 
 **Built**

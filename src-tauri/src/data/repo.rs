@@ -512,6 +512,6 @@ mod tests {
             info.size_bytes as u64,
             fs::metadata(&database_path).unwrap().len()
         );
-        assert_eq!(info.schema_version, 5);
+        assert_eq!(info.schema_version, 8);
     }
 }

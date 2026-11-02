@@ -93,12 +93,72 @@ CREATE TABLE quotes (
 );
 ";
 
+const MIGRATION_006: &str = "
+CREATE TABLE reminders (
+  id           INTEGER PRIMARY KEY,
+  title        TEXT NOT NULL,
+  notes        TEXT,
+  due_date     TEXT NOT NULL,
+  due_time     TEXT,
+  completed_on TEXT,
+  created_at   TEXT NOT NULL,
+  updated_at   TEXT NOT NULL
+);
+CREATE INDEX idx_reminders_due_date ON reminders(due_date);
+CREATE INDEX idx_reminders_completed_on ON reminders(completed_on);
+";
+
+const MIGRATION_007: &str = "
+CREATE TABLE notes (
+  id               INTEGER PRIMARY KEY,
+  title            TEXT NOT NULL,
+  body             TEXT,
+  url              TEXT,
+  review_stage     INTEGER NOT NULL DEFAULT 0 CHECK (review_stage >= 0),
+  next_review_date TEXT,
+  last_reviewed_on TEXT,
+  archived_at      TEXT,
+  created_at       TEXT NOT NULL,
+  updated_at       TEXT NOT NULL
+);
+CREATE INDEX idx_notes_next_review ON notes(next_review_date);
+";
+
+const MIGRATION_008: &str = "
+CREATE TABLE goals (
+  id           INTEGER PRIMARY KEY,
+  title        TEXT NOT NULL,
+  description  TEXT,
+  target_value REAL CHECK (target_value IS NULL OR target_value > 0),
+  unit         TEXT,
+  due_date     TEXT,
+  status       TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'completed', 'abandoned')),
+  closed_on    TEXT,
+  sort_order   INTEGER NOT NULL DEFAULT 0,
+  created_at   TEXT NOT NULL,
+  updated_at   TEXT NOT NULL
+);
+
+CREATE TABLE goal_progress (
+  goal_id    INTEGER NOT NULL REFERENCES goals(id) ON DELETE CASCADE,
+  date       TEXT    NOT NULL,
+  amount     REAL    NOT NULL CHECK (amount > 0),
+  created_at TEXT    NOT NULL,
+  updated_at TEXT    NOT NULL,
+  PRIMARY KEY (goal_id, date)
+);
+CREATE INDEX idx_goal_progress_date ON goal_progress(date);
+";
+
 const MIGRATION_ARRAY: &[M<'static>] = &[
     M::up(MIGRATION_001),
     M::up(MIGRATION_002),
     M::up(MIGRATION_003),
     M::up(MIGRATION_004),
     M::up(MIGRATION_005),
+    M::up(MIGRATION_006),
+    M::up(MIGRATION_007),
+    M::up(MIGRATION_008),
 ];
 
 /// Ordered list of embedded migrations (SPEC §5).
@@ -152,12 +212,12 @@ mod tests {
         assert_eq!(fk, 1);
         let tables: i64 = conn
             .query_row(
-                "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name IN ('habits', 'habit_checks', 'calendars', 'events', 'journal_entries', 'annual_themes', 'quotes')",
+                "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name IN ('habits', 'habit_checks', 'calendars', 'events', 'journal_entries', 'annual_themes', 'quotes', 'reminders', 'notes', 'goals', 'goal_progress')",
                 [],
                 |r| r.get(0),
             )
             .unwrap();
-        assert_eq!(tables, 7);
+        assert_eq!(tables, 11);
     }
 
     #[test]

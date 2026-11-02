@@ -5,7 +5,10 @@ import { AppLayout } from "@/components/AppLayout";
 import { Toaster } from "@/components/ui/sonner";
 import Calendar from "@/routes/Calendar";
 import Habits from "@/routes/Habits";
+import Goals from "@/routes/Goals";
 import Journal from "@/routes/Journal";
+import Notes from "@/routes/Notes";
+import Reminders from "@/routes/Reminders";
 import Quotes from "@/routes/Quotes";
 import Settings from "@/routes/Settings";
 import Themes from "@/routes/Themes";
@@ -27,6 +30,9 @@ const router = createHashRouter([
       { path: "habits", element: <Habits /> },
       { path: "calendar", element: <Calendar /> },
       { path: "journal", element: <Journal /> },
+      { path: "reminders", element: <Reminders /> },
+      { path: "goals", element: <Goals /> },
+      { path: "notes", element: <Notes /> },
       { path: "themes", element: <Themes /> },
       { path: "quotes", element: <Quotes /> },
       { path: "settings", element: <Settings /> },

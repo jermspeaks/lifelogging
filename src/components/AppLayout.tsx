@@ -1,9 +1,12 @@
 import {
+  BookMarked,
   BookOpen,
   CalendarCheck,
   CalendarDays,
   ListChecks,
+  Bell,
   Quote,
+  Target,
   Settings,
   Sparkles,
   type LucideIcon,
@@ -19,6 +22,9 @@ const NAV: NavItem[] = [
   { to: "/habits", label: "Habits", icon: ListChecks },
   { to: "/calendar", label: "Calendar", icon: CalendarDays },
   { to: "/journal", label: "Journal", icon: BookOpen },
+  { to: "/reminders", label: "Reminders", icon: Bell },
+  { to: "/goals", label: "Goals", icon: Target },
+  { to: "/notes", label: "Notes", icon: BookMarked },
   { to: "/quotes", label: "Quotes", icon: Quote },
   { to: "/themes", label: "Themes", icon: Sparkles },
 ];

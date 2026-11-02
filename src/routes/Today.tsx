@@ -5,6 +5,9 @@ import { JournalWidget } from "@/widgets/journal/JournalWidget";
 import { QuoteWidget } from "@/widgets/quotes/QuoteWidget";
 import { ThemeBanner } from "@/widgets/themes/ThemeBanner";
 import { HabitChecklist } from "@/widgets/habits/HabitChecklist";
+import { GoalsWidget } from "@/widgets/goals/GoalsWidget";
+import { ReviewWidget } from "@/widgets/notes/ReviewWidget";
+import { RemindersWidget } from "@/widgets/reminders/RemindersWidget";
 
 const headerFmt = new Intl.DateTimeFormat(undefined, {
   weekday: "long",
@@ -37,9 +40,12 @@ export default function Today() {
       </header>
       <ThemeBanner today={today} />
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <RemindersWidget today={today} />
         <HabitChecklist today={today} />
         <EventsLookahead today={today} />
         <JournalWidget today={today} />
+        <GoalsWidget today={today} />
+        <ReviewWidget today={today} />
         <QuoteWidget today={today} />
       </div>
     </div>

@@ -11,7 +11,7 @@ are in [`AGENTS.md`](../AGENTS.md). The product spec is [`SPEC.md`](./SPEC.md).
 | **v0.1: Habits** (shell + habit CRUD + Today checklist) | ✅ Built and committed (T0–T5, 2026-10-31). Manual QA is partly complete; remaining checks are below. |
 | v0.2: Calendar and event lookahead | ✅ Implemented; real-window mouse QA remains open below. |
 | v0.3: Reflect (Journal, Annual theme, Quotes, Export) | ✅ Integrated (S3, T7, T9, T10, T15, W3); real-window QA and screenshots remain open below. |
-| v0.4: Plan (Reminders, Notes review, Goals) | 📝 Specced (SPEC §17–§19); not started. |
+| v0.4: Plan (Reminders, Notes review, Goals) | S4 scaffold implemented; T12, T11, and T14 are ready to start. |
 | v0.5: Look back (Recap, Puzzle) | 📝 Specced (SPEC §20–§21); not started. |
 
 ## Open items
@@ -109,32 +109,6 @@ seeded database, writes the human QA checklist, and closes the milestone in `COM
 
 ---
 
-### S4: v0.4 scaffold (serial, after W3)
-
-**Goal:** freeze the contracts for SPEC §17–§19.
-
-**Owns:** everything.
-
-**Implement**
-- Migrations 006 `reminders`, 007 `notes`, and 008 `goals` plus `goal_progress`.
-- Modules `reminders`, `notes`, and `goals` with final models, stubbed repo, logic, and commands,
-  and all 20 commands registered.
-  - For `NotePatch` and `ReviewAction`, the action serializes as lowercase `"keep"` or `"snooze"`.
-  - For `GoalStatus`, use lowercase values.
-  - For `GoalPatch.targetValue`, decide on the double-option representation (SPEC §19) and
-    document it in `model.rs`.
-- Add `tauri-plugin-opener` (Rust crate and `@tauri-apps/plugin-opener`) and grant
-  `opener:allow-open-url`. Add `src/lib/open.ts` (`openExternal`), working in both modes.
-- Bindings, `types.ts`, `api.ts`, and `queries.ts` (keys `["reminders", …]`, `["notes", …]`, and
-  `["goals", …]`). Put each module's optimistic toggle (`useSetReminderDone`) in `queries.ts` here,
-  as v0.1 did for the habit check.
-- Mock stubs in `src/lib/mock/{reminders,notes,goals}.ts`.
-- Routes `/reminders`, `/goals`, and `/notes` with stub pages, and nav entries in SPEC §12 order.
-  Today slots for `RemindersWidget`, `GoalsWidget`, and `ReviewWidget` in SPEC §12 order.
-
-**Verify:** the full Definition of Done, and the mock app shows the new placeholders.
-
----
 
 ### T12: Reminders (parallel, after S4)
 
